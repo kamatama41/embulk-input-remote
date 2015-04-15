@@ -1,15 +1,18 @@
-package org.embulk.input;
+package org.embulk.input.remote;
 
+import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class SSHClient implements Closeable {
-	
+
 	private final net.schmizz.sshj.SSHClient client;
 
 	public SSHClient() {
@@ -20,10 +23,10 @@ public class SSHClient implements Closeable {
 	SSHClient(net.schmizz.sshj.SSHClient client) {
 		this.client = client;
 	}
-	
+
 	public void connect(String host, Map<String, String> authConfig) throws IOException {
 		client.loadKnownHosts();
-		
+
 		client.connect(host);
 
 		final String type = authConfig.get("type") != null ? authConfig.get("type") : "public_key";
@@ -40,6 +43,14 @@ public class SSHClient implements Closeable {
 			}
 		} else {
 			throw new UnsupportedOperationException("Unsupported auth type : " + type);
+		}
+	}
+
+	public CommandResult execCommand(String command, int timeoutSecond) throws IOException {
+		try (final Session session = client.startSession()) {
+			final Session.Command cmd = session.exec(command);
+			cmd.join(timeoutSecond, TimeUnit.SECONDS);
+			return new CommandResult(cmd.getExitStatus(), cmd.getInputStream());
 		}
 	}
 
@@ -65,11 +76,29 @@ public class SSHClient implements Closeable {
 			return this;
 		}
 	}
-	
+
 	@Override
 	public void close() throws IOException {
-		if(client != null) {
+		if (client != null) {
 			client.close();
+		}
+	}
+
+	public static class CommandResult {
+		int status;
+		InputStream stdout;
+
+		private CommandResult(int status, InputStream stdout) {
+			this.status = status;
+			this.stdout = stdout;
+		}
+
+		public int getStatus() {
+			return status;
+		}
+
+		public InputStream getStdout() {
+			return stdout;
 		}
 	}
 }

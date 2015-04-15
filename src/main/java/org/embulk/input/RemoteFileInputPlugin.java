@@ -24,6 +24,7 @@ import org.embulk.config.ConfigInject;
 import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
 import org.embulk.config.TaskSource;
+import org.embulk.input.remote.SSHClient;
 import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
@@ -61,6 +62,10 @@ public class RemoteFileInputPlugin
 		@ConfigDefault("{}")
 		public Map<String, String> getAuth();
 
+		@Config("ignore_not_found_hosts")
+		@ConfigDefault("false")
+		public boolean getIgnoreNotFoundHosts();
+
 		@Config("last_target")
 		@ConfigDefault("null")
 		public Optional<Target> getLastTarget();
@@ -80,19 +85,21 @@ public class RemoteFileInputPlugin
 	@Override
 	public ConfigDiff transaction(ConfigSource config, FileInputPlugin.Control control) {
 		PluginTask task = config.loadConfig(PluginTask.class);
+		try {
+			List<Target> targets = listTargets(task);
+			log.info("Loading targets {}", targets);
+			task.setTargets(targets);
+	
+			// number of processors is same with number of targets
+			int taskCount = targets.size();
+			return resume(task.dump(), taskCount, control);
 
-		List<Target> targets = listTargets(task);
-		log.info("Loading targets {}", targets);
-		task.setTargets(targets);
-
-		// number of processors is same with number of targets
-		int taskCount = targets.size();
-		return resume(task.dump(), taskCount, control);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	private List<Target> listTargets(PluginTask task) {
-		task.getHostsCommand().orNull();
-
+	private List<Target> listTargets(PluginTask task) throws IOException {
 		final List<String> hosts = listHosts(task);
 		final String path = getPath(task);
 
@@ -100,7 +107,15 @@ public class RemoteFileInputPlugin
 		Target lastTarget = task.getLastTarget().orNull();
 		for (String host : hosts) {
 			Target target = new Target(host, path);
+
 			if (lastTarget == null || target.compareTo(lastTarget) > 0) {
+				if (task.getIgnoreNotFoundHosts()) {
+					// Check with file existing
+					if (!exists(target, task)) {
+						continue;
+					}
+					// This host will fail when "open" method is called.
+				}
 				builder.add(target);
 			}
 		}
@@ -178,7 +193,7 @@ public class RemoteFileInputPlugin
 		final Target target = task.getTargets().get(taskIndex);
 
 		try {
-			return new PluginFileInput(task, download(target, task.getAuth()));
+			return new PluginFileInput(task, download(target, task));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -225,9 +240,26 @@ public class RemoteFileInputPlugin
 		}
 	}
 
-	private InputStream download(Target target, Map<String, String> auth) throws IOException {
-		try(SSHClient client = new SSHClient()) {
-			client.connect(target.getHost(), auth);
+	private boolean exists(Target target, PluginTask task) throws IOException {
+		try (SSHClient client = new SSHClient()) {
+			client.connect(target.getHost(), task.getAuth());
+
+			final String checkCmd = "ls " + target.getPath();    // TODO: windows
+			final int timeout = 5/* second */;
+			final SSHClient.CommandResult commandResult = client.execCommand(checkCmd, timeout);
+
+			if(commandResult.getStatus() != 0) {
+				log.warn("Remote file not found. {}", target.toString());
+				return false;
+			} else {
+				return true;
+			}
+		}
+	}
+
+	private InputStream download(Target target, PluginTask task) throws IOException {
+		try (SSHClient client = new SSHClient()) {
+			client.connect(target.getHost(), task.getAuth());
 			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
 			client.scpDownload(target.getPath(), stream);
 			return new ByteArrayInputStream(stream.toByteArray());
