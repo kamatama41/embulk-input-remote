@@ -11,12 +11,12 @@ This plugin load data from Remote hosts by SCP
 ## Configuration
 
 - **hosts**: Target hosts (list, default: [])
-- **hosts_command**: Command to getting hosts(Windows not supported). If given the option, "hosts" is overwritten. (string, default: null)
-- **hosts_separator**: Separator of "hosts_command" result (string, default: " ")
+- **hosts_command**: Command for getting hosts(Windows not supported). If given the option, "hosts" is overwritten. (string, default: null)
+- **hosts_separator**: Separator for "hosts_command" result (string, default: " ")
 - **path**: Path of remote host (File or Directory) (string, default: "")
-- **path_command**: Command to getting hosts (Windows not supported). If given the option "path" is overwritten. (string, default: null)
+- **path_command**: Command for getting path (Windows not supported). If given the option "path" is overwritten. (string, default: null)
 - **auth**: SSH authentication setting (hash, default: {})
-    - **user**: SSH username (string, default: executing username)
+    - **user**: SSH username (string, default: execute user)
     - **type**: public_key or password (string, default: public_key)
     - **key_path**: Path of secret key (If you choose type "public_key") (string, default: "~/.ssh/id_rsa or id_dsa")
     - **password**: SSH password (If you choose type "password") (string)
