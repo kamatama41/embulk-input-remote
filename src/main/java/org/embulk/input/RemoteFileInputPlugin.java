@@ -241,7 +241,7 @@ public class RemoteFileInputPlugin
 			final String user = auth.get("user") != null ? auth.get("user") : System.getProperty("user.name");
 
 			if ("password".equals(type)) {
-				client.authPassword(auth.get("user"), auth.get("password"));
+				client.authPassword(user, auth.get("password"));
 			} else if ("public_key".equals(type)) {
 				final String key_path = auth.get("key_path");
 				if (key_path == null) {
