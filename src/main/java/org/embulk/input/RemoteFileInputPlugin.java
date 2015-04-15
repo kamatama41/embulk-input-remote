@@ -114,7 +114,6 @@ public class RemoteFileInputPlugin
 					if (!exists(target, task)) {
 						continue;
 					}
-					// This host will fail when "open" method is called.
 				}
 				builder.add(target);
 			}
