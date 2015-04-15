@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,9 +16,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.xfer.InMemoryDestFile;
-import net.schmizz.sshj.xfer.LocalDestFile;
 import org.embulk.config.CommitReport;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
@@ -227,55 +223,14 @@ public class RemoteFileInputPlugin
 		public CommitReport commit() {
 			return Exec.newCommitReport();
 		}
-
-
 	}
 
 	private InputStream download(Target target, Map<String, String> auth) throws IOException {
-		SSHClient client = new SSHClient();
-		client.loadKnownHosts();
-		InMemoryDestFileImpl memoryDestFile = new InMemoryDestFileImpl();
-		try {
-			client.connect(target.getHost());
-			final String type = auth.get("type") != null ? auth.get("type") : "public_key";
-			final String user = auth.get("user") != null ? auth.get("user") : System.getProperty("user.name");
-
-			if ("password".equals(type)) {
-				client.authPassword(user, auth.get("password"));
-			} else if ("public_key".equals(type)) {
-				final String key_path = auth.get("key_path");
-				if (key_path == null) {
-					client.authPublickey(user);
-				} else {
-					client.authPublickey(user, key_path);
-				}
-			} else {
-				throw new UnsupportedOperationException("Unsupported auth type : " + type);
-			}
-			client.newSCPFileTransfer().download(target.getPath(), memoryDestFile);
-			return new ByteArrayInputStream(memoryDestFile.outputStream.toByteArray());
-
-		} finally {
-			client.disconnect();
-		}
-	}
-
-	public static class InMemoryDestFileImpl extends InMemoryDestFile {
-
-		private ByteArrayOutputStream outputStream;
-
-		public InMemoryDestFileImpl() {
-			this.outputStream = new ByteArrayOutputStream();
-		}
-
-		@Override
-		public OutputStream getOutputStream() throws IOException {
-			return outputStream;
-		}
-
-		@Override
-		public LocalDestFile getTargetDirectory(String dirname) throws IOException {
-			return this;
+		try(SSHClient client = new SSHClient()) {
+			client.connect(target.getHost(), auth);
+			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			client.scpDownload(target.getPath(), stream);
+			return new ByteArrayInputStream(stream.toByteArray());
 		}
 	}
 
