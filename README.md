@@ -1,4 +1,4 @@
-# Remote file input plugin for Embulk
+# Remote file input plugin for [Embulk](https://github.com/embulk/embulk)
 
 This plugin load data from Remote hosts by SCP
 
