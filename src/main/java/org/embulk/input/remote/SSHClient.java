@@ -55,6 +55,7 @@ public class SSHClient implements Closeable {
 	}
 
 	public void scpDownload(String path, OutputStream stream) throws IOException {
+		client.useCompression();
 		client.newSCPFileTransfer().download(path, new InMemoryDestFileImpl(stream));
 	}
 
