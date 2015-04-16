@@ -43,6 +43,27 @@ in:
 #    password: {password}
 ```
 
+## Note
+When this plugin run on Linux, task is sometimes blocked.  
+The cause is java.security.SecureRandom. Solution is the following.
+
+### set JVM_OPTION "-Djava.security.egd"
+
+```bash
+$ export JAVA_TOOL_OPTIONS="-Djava.security.egd=file:/dev/./urandom"
+$ embulk run config.yml
+```
+
+### rewrite ${JAVA_HOME}/jre/lib/security/java.security
+
+```
+# securerandom.source=file:/dev/random # before
+securerandom.source=file:/dev/./urandom # after
+```
+
+### see also
+
+http://stackoverflow.com/questions/137212/how-to-solve-performance-problem-with-java-securerandom
 
 ## Build
 
