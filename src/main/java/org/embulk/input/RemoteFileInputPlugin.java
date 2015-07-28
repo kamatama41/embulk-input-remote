@@ -85,21 +85,16 @@ public class RemoteFileInputPlugin
 	@Override
 	public ConfigDiff transaction(ConfigSource config, FileInputPlugin.Control control) {
 		PluginTask task = config.loadConfig(PluginTask.class);
-		try {
-			List<Target> targets = listTargets(task);
-			log.info("Loading targets {}", targets);
-			task.setTargets(targets);
-	
-			// number of processors is same with number of targets
-			int taskCount = targets.size();
-			return resume(task.dump(), taskCount, control);
+		List<Target> targets = listTargets(task);
+		log.info("Loading targets {}", targets);
+		task.setTargets(targets);
 
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		// number of processors is same with number of targets
+		int taskCount = targets.size();
+		return resume(task.dump(), taskCount, control);
 	}
 
-	private List<Target> listTargets(PluginTask task) throws IOException {
+	private List<Target> listTargets(PluginTask task) {
 		final List<String> hosts = listHosts(task);
 		final String path = getPath(task);
 
@@ -110,8 +105,13 @@ public class RemoteFileInputPlugin
 
 			if (lastTarget == null || target.compareTo(lastTarget) > 0) {
 				if (task.getIgnoreNotFoundHosts()) {
-					// Check with file existing
-					if (!exists(target, task)) {
+					try {
+						final boolean exists = exists(target, task);
+						if (!exists) {
+							continue;
+						}
+					} catch (IOException e) {
+						log.warn("failed to check the file exists. " + target.toString(), e);
 						continue;
 					}
 				}

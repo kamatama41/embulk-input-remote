@@ -15,7 +15,7 @@ This plugin load data from Remote hosts by SCP
 - **hosts_separator**: Separator for "hosts_command" result (string, default: " ")
 - **path**: Path of remote host (File or Directory) (string, default: "")
 - **path_command**: Command for getting path (Windows not supported). If given the option "path" is overwritten. (string, default: null)
-- **ignore_not_found_hosts**: If the option is true, Hosts which file(or directory) is not found is skipped. (Means it's not included in resume target.) (boolean, default: false)
+- **ignore_not_found_hosts**: If the option is true, Hosts which is not found file(or directory) or is occurred SSH error are skipped. (Means it's not included in resume target.) (boolean, default: false)
 - **auth**: SSH authentication setting (hash, default: {})
     - **user**: SSH username (string, default: execute user)
     - **type**: public_key or password (string, default: public_key)
@@ -45,7 +45,7 @@ in:
 
 ## Note
 When this plugin run on Linux, task is sometimes blocked.  
-The cause is java.security.SecureRandom. Solution is the following.
+The cause is java.security.SecureRandom. Please try one of the followings.
 
 ### set JVM_OPTION "-Djava.security.egd"
 
