@@ -1,0 +1,29 @@
+in:
+  type: remote
+  hosts:
+    - localhost
+  path: {{ env.PROJECT_ROOT }}/example/csv
+  ignore_not_found_hosts: true
+  auth:
+    user: {{ env.USER }}
+    type: password
+    password: {{ env.PASSWORD }}
+  decoders:
+  - {type: gzip}
+  parser:
+    charset: UTF-8
+    newline: CRLF
+    type: csv
+    delimiter: ','
+    quote: '"'
+    trim_if_not_quoted: false
+    skip_header_lines: 1
+    allow_extra_columns: false
+    allow_optional_columns: false
+    columns:
+    - {name: id, type: long}
+    - {name: account, type: long}
+    - {name: time, type: timestamp, format: '%Y-%m-%d %H:%M:%S'}
+    - {name: purchase, type: timestamp, format: '%Y%m%d'}
+    - {name: comment, type: string}
+out: {type: stdout}
