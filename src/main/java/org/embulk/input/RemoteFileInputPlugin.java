@@ -16,20 +16,20 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import org.embulk.config.CommitReport;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigInject;
 import org.embulk.config.ConfigSource;
 import org.embulk.config.Task;
+import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
 import org.embulk.input.remote.SSHClient;
 import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.TransactionalFileInput;
-import org.embulk.spi.util.InputStreamFileInput;
+import org.embulk.spi.util.InputStreamTransactionalFileInput;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
@@ -183,60 +183,33 @@ public class RemoteFileInputPlugin
 	@Override
 	public void cleanup(TaskSource taskSource,
 						int taskCount,
-						List<CommitReport> successCommitReports) {
+						List<TaskReport> successTaskReports) {
 	}
 
 	@Override
 	public TransactionalFileInput open(TaskSource taskSource, int taskIndex) {
-		PluginTask task = taskSource.loadTask(PluginTask.class);
+		final PluginTask task = taskSource.loadTask(PluginTask.class);
 		final Target target = task.getTargets().get(taskIndex);
 
-		try {
-			return new PluginFileInput(task, download(target, task));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public static class PluginFileInput
-			extends InputStreamFileInput
-			implements TransactionalFileInput {
-		// TODO create single-file InputStreamFileInput utility
-		private static class RemoteFileProvider
-				implements InputStreamFileInput.Provider {
-			private boolean opened = false;
-			private final InputStream input;
-
-			public RemoteFileProvider(InputStream input) {
-				this.input = input;
-			}
-
-			@Override
-			public InputStream openNext() throws IOException {
-				if (opened) {
-					return null;
+		return new InputStreamTransactionalFileInput(
+				task.getBufferAllocator(),
+				new InputStreamTransactionalFileInput.Opener() {
+					@Override
+					public InputStream open() throws IOException {
+						return download(target, task);
+					}
 				}
-				opened = true;
-				return input;
+		) {
+			@Override
+			public void abort() {
+
 			}
 
 			@Override
-			public void close() {
+			public TaskReport commit() {
+				return Exec.newTaskReport();
 			}
-		}
-
-		public PluginFileInput(PluginTask task, InputStream input) {
-			super(task.getBufferAllocator(), new RemoteFileProvider(input));
-		}
-
-		@Override
-		public void abort() {
-		}
-
-		@Override
-		public CommitReport commit() {
-			return Exec.newCommitReport();
-		}
+		};
 	}
 
 	private boolean exists(Target target, PluginTask task) throws IOException {

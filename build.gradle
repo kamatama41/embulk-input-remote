@@ -16,10 +16,10 @@ configurations {
 version = "0.1.5"
 
 dependencies {
-    compile  "org.embulk:embulk-core:0.6.1"
-    compile  "com.hierynomus:sshj:0.11.0"
+    compile  "org.embulk:embulk-core:0.7.10"
+    compile  "com.hierynomus:sshj:0.15.0"
     compile  "com.jcraft:jzlib:1.1.3"
-    provided "org.embulk:embulk-core:0.6.1"
+    provided "org.embulk:embulk-core:0.7.10"
     testCompile "junit:junit:4.+"
 }
 
@@ -40,7 +40,7 @@ task gemspec << { file("build/gemspec").write($/
 Gem::Specification.new do |spec|
   spec.name          = "${project.name}"
   spec.version       = "${project.version}"
-  spec.authors       = ["Shinichi ISHIMURA"]
+  spec.authors       = ["Shinichi Ishimura"]
   spec.summary       = %[Remote file input plugin for Embulk]
   spec.description   = %[Reads files stored on Remote hosts by SCP.]
   spec.email         = ["shiketaudonko41@gmail.com"]
