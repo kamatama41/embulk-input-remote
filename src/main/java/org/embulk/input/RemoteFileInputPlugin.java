@@ -213,7 +213,7 @@ public class RemoteFileInputPlugin
 	}
 
 	private boolean exists(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = new SSHClient()) {
+		try (SSHClient client = SSHClient.getInstance()) {
 			client.connect(target.getHost(), task.getAuth());
 
 			final String checkCmd = "ls " + target.getPath();    // TODO: windows
@@ -230,7 +230,7 @@ public class RemoteFileInputPlugin
 	}
 
 	private InputStream download(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = new SSHClient()) {
+		try (SSHClient client = SSHClient.getInstance()) {
 			client.connect(target.getHost(), task.getAuth());
 			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
 			client.scpDownload(target.getPath(), stream);
