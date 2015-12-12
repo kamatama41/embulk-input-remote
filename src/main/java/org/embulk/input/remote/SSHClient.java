@@ -1,6 +1,11 @@
 package org.embulk.input.remote;
 
+import com.hierynomus.sshj.signature.SignatureEdDSA;
+import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.connection.channel.direct.Session;
+import net.schmizz.sshj.signature.SignatureDSA;
+import net.schmizz.sshj.signature.SignatureECDSA;
+import net.schmizz.sshj.signature.SignatureRSA;
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 
@@ -15,8 +20,18 @@ public class SSHClient implements Closeable {
 
 	private final net.schmizz.sshj.SSHClient client;
 
-	public SSHClient() {
-		this(new net.schmizz.sshj.SSHClient());
+	public static SSHClient getInstance() {
+		return new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
+			@Override
+			protected void initSignatureFactories() {
+				setSignatureFactories(
+						new SignatureRSA.Factory(),
+						new SignatureECDSA.Factory(),
+						new SignatureDSA.Factory(),
+						new SignatureEdDSA.Factory()
+				);
+			}
+		}));
 	}
 
 	/* package for test */
@@ -26,7 +41,6 @@ public class SSHClient implements Closeable {
 
 	public void connect(String host, Map<String, String> authConfig) throws IOException {
 		client.loadKnownHosts();
-
 		client.connect(host);
 
 		final String type = authConfig.get("type") != null ? authConfig.get("type") : "public_key";
