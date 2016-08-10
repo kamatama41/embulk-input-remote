@@ -177,6 +177,11 @@ public class RemoteFileInputPlugin
 
 		List<Target> targets = new ArrayList<>(task.getTargets());
 		Collections.sort(targets);
+
+		if (targets.isEmpty()) {
+			return Exec.newConfigDiff();
+		}
+
 		return Exec.newConfigDiff().set("last_target", targets.get(targets.size() - 1));
 	}
 
