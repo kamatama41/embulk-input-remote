@@ -15,7 +15,9 @@ This plugin load data from Remote hosts by SCP
 - **hosts_separator**: Separator for "hosts_command" result (string, default: " ")
 - **path**: Path of remote host (File or Directory) (string, default: "")
 - **path_command**: Command for getting path (Windows not supported). If given the option "path" is overwritten. (string, default: null)
-- **ignore_not_found_hosts**: If the option is true, Hosts which is not found file(or directory) or is occurred SSH error are skipped. (Means it's not included in resume target.) (boolean, default: false)
+- **ignore_not_found_hosts**: If the option is true, Hosts which meet the following conditions are skipped. (Means they are not included into resume target.) (boolean, default: false)
+  - Target file (or directory) isn't found
+  - Occurred SSH error
 - **auth**: SSH authentication setting (hash, default: {})
     - **user**: SSH username (string, default: execute user)
     - **type**: public_key or password (string, default: public_key)
