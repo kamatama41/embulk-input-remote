@@ -6,6 +6,7 @@ import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.signature.SignatureDSA;
 import net.schmizz.sshj.signature.SignatureECDSA;
 import net.schmizz.sshj.signature.SignatureRSA;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
 
@@ -40,6 +41,9 @@ public class SSHClient implements Closeable {
 	}
 
 	public void connect(String host, Map<String, String> authConfig) throws IOException {
+		if (Boolean.valueOf(authConfig.get("skip_host_key_verification"))) {
+			client.addHostKeyVerifier(new PromiscuousVerifier());
+		}
 		client.loadKnownHosts();
 		client.connect(host);
 
