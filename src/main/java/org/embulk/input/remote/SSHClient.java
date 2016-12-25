@@ -40,12 +40,12 @@ public class SSHClient implements Closeable {
 		this.client = client;
 	}
 
-	public void connect(String host, Map<String, String> authConfig) throws IOException {
+	public void connect(String host, int port, Map<String, String> authConfig) throws IOException {
 		if (Boolean.valueOf(authConfig.get("skip_host_key_verification"))) {
 			client.addHostKeyVerifier(new PromiscuousVerifier());
 		}
 		client.loadKnownHosts();
-		client.connect(host);
+		client.connect(host, port);
 
 		final String type = authConfig.get("type") != null ? authConfig.get("type") : "public_key";
 		final String user = authConfig.get("user") != null ? authConfig.get("user") : System.getProperty("user.name");
