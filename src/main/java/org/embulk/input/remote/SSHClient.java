@@ -14,6 +14,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -25,27 +26,26 @@ public class SSHClient implements Closeable {
 		return new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
 			@Override
 			protected void initSignatureFactories() {
-				setSignatureFactories(
+				setSignatureFactories(Arrays.asList(
 						new SignatureRSA.Factory(),
 						new SignatureECDSA.Factory(),
 						new SignatureDSA.Factory(),
 						new SignatureEdDSA.Factory()
-				);
+				));
 			}
 		}));
 	}
 
-	/* package for test */
-	SSHClient(net.schmizz.sshj.SSHClient client) {
+	private SSHClient(net.schmizz.sshj.SSHClient client) {
 		this.client = client;
 	}
 
-	public void connect(String host, Map<String, String> authConfig) throws IOException {
+	public void connect(String host, int port, Map<String, String> authConfig) throws IOException {
 		if (Boolean.valueOf(authConfig.get("skip_host_key_verification"))) {
 			client.addHostKeyVerifier(new PromiscuousVerifier());
 		}
 		client.loadKnownHosts();
-		client.connect(host);
+		client.connect(host, port);
 
 		final String type = authConfig.get("type") != null ? authConfig.get("type") : "public_key";
 		final String user = authConfig.get("user") != null ? authConfig.get("user") : System.getProperty("user.name");

@@ -40,44 +40,48 @@ public class RemoteFileInputPlugin
 			extends Task {
 		@Config("hosts")
 		@ConfigDefault("[]")
-		public List<String> getHosts();
+		List<String> getHosts();
 
 		@Config("hosts_command")
 		@ConfigDefault("null")
-		public Optional<String> getHostsCommand();
+		Optional<String> getHostsCommand();
 
 		@Config("hosts_separator")
 		@ConfigDefault("\" \"")
-		public String getHostsSeparator();
+		String getHostsSeparator();
+
+		@Config("port")
+		@ConfigDefault("22")
+		int getPort();
 
 		@Config("path")
 		@ConfigDefault("\"\"")
-		public String getPath();
+		String getPath();
 
 		@Config("path_command")
 		@ConfigDefault("null")
-		public Optional<String> getPathCommand();
+		Optional<String> getPathCommand();
 
 		@Config("auth")
 		@ConfigDefault("{}")
-		public Map<String, String> getAuth();
+		Map<String, String> getAuth();
 
 		@Config("ignore_not_found_hosts")
 		@ConfigDefault("false")
-		public boolean getIgnoreNotFoundHosts();
+		boolean getIgnoreNotFoundHosts();
 
 		@Config("last_target")
 		@ConfigDefault("null")
-		public Optional<Target> getLastTarget();
+		Optional<Target> getLastTarget();
 
-		public void setLastTarget(Optional<Target> lastTarget);
+		void setLastTarget(Optional<Target> lastTarget);
 
-		public List<Target> getTargets();
+		List<Target> getTargets();
 
-		public void setTargets(List<Target> targets);
+		void setTargets(List<Target> targets);
 
 		@ConfigInject
-		public BufferAllocator getBufferAllocator();
+		BufferAllocator getBufferAllocator();
 	}
 
 	private final Logger log = Exec.getLogger(getClass());
@@ -219,7 +223,7 @@ public class RemoteFileInputPlugin
 
 	private boolean exists(Target target, PluginTask task) throws IOException {
 		try (SSHClient client = SSHClient.getInstance()) {
-			client.connect(target.getHost(), task.getAuth());
+			client.connect(target.getHost(), task.getPort(), task.getAuth());
 
 			final String checkCmd = "ls " + target.getPath();    // TODO: windows
 			final int timeout = 5/* second */;
@@ -236,7 +240,7 @@ public class RemoteFileInputPlugin
 
 	private InputStream download(Target target, PluginTask task) throws IOException {
 		try (SSHClient client = SSHClient.getInstance()) {
-			client.connect(target.getHost(), task.getAuth());
+			client.connect(target.getHost(), task.getPort(), task.getAuth());
 			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
 			client.scpDownload(target.getPath(), stream);
 			return new ByteArrayInputStream(stream.toByteArray());
