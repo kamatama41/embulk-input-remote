@@ -14,6 +14,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -25,12 +26,12 @@ public class SSHClient implements Closeable {
 		return new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
 			@Override
 			protected void initSignatureFactories() {
-				setSignatureFactories(
+				setSignatureFactories(Arrays.asList(
 						new SignatureRSA.Factory(),
 						new SignatureECDSA.Factory(),
 						new SignatureDSA.Factory(),
 						new SignatureEdDSA.Factory()
-				);
+				));
 			}
 		}));
 	}
