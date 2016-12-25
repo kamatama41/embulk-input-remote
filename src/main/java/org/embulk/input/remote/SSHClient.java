@@ -35,8 +35,7 @@ public class SSHClient implements Closeable {
 		}));
 	}
 
-	/* package for test */
-	SSHClient(net.schmizz.sshj.SSHClient client) {
+	private SSHClient(net.schmizz.sshj.SSHClient client) {
 		this.client = client;
 	}
 
