@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/kamatama41/tfenv.svg?branch=master)](https://travis-ci.org/kamatama41/tfenv)
+
 # Remote file input plugin for [Embulk](https://github.com/embulk/embulk)
 
 This plugin load data from Remote hosts by SCP
