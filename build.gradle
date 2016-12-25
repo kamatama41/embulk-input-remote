@@ -4,6 +4,11 @@ plugins {
     id "java"
     id "idea"
 }
+
+compileJava {
+    options.compilerArgs = ['-Xlint:all']
+}
+
 import com.github.jrubygradle.JRubyExec
 repositories {
     mavenCentral()
