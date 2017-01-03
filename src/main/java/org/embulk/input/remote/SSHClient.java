@@ -22,8 +22,11 @@ public class SSHClient implements Closeable {
 
 	private final net.schmizz.sshj.SSHClient client;
 
-	public static SSHClient getInstance() {
-		return new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
+	public static SSHClient connect(
+			String host, int port, RemoteFileInputPlugin.AuthConfig authConfig
+	) throws IOException {
+
+		SSHClient client =  new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
 			@Override
 			protected void initSignatureFactories() {
 				setSignatureFactories(Arrays.asList(
@@ -34,13 +37,15 @@ public class SSHClient implements Closeable {
 				));
 			}
 		}));
+		client.connectToHost(host, port, authConfig);
+		return client;
 	}
 
 	private SSHClient(net.schmizz.sshj.SSHClient client) {
 		this.client = client;
 	}
 
-	public void connect(String host, int port, RemoteFileInputPlugin.AuthConfig authConfig) throws IOException {
+	private void connectToHost(String host, int port, RemoteFileInputPlugin.AuthConfig authConfig) throws IOException {
 		if (authConfig.getSkipHostKeyVerification()) {
 			client.addHostKeyVerifier(new PromiscuousVerifier());
 		}
