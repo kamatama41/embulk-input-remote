@@ -9,21 +9,24 @@ import net.schmizz.sshj.signature.SignatureRSA;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
+import org.embulk.input.RemoteFileInputPlugin;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class SSHClient implements Closeable {
 
 	private final net.schmizz.sshj.SSHClient client;
 
-	public static SSHClient getInstance() {
-		return new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
+	public static SSHClient connect(
+			String host, int port, RemoteFileInputPlugin.AuthConfig authConfig
+	) throws IOException {
+
+		SSHClient client =  new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
 			@Override
 			protected void initSignatureFactories() {
 				setSignatureFactories(Arrays.asList(
@@ -34,30 +37,35 @@ public class SSHClient implements Closeable {
 				));
 			}
 		}));
+		client.connectToHost(host, port, authConfig);
+		return client;
 	}
 
 	private SSHClient(net.schmizz.sshj.SSHClient client) {
 		this.client = client;
 	}
 
-	public void connect(String host, int port, Map<String, String> authConfig) throws IOException {
-		if (Boolean.valueOf(authConfig.get("skip_host_key_verification"))) {
+	private void connectToHost(String host, int port, RemoteFileInputPlugin.AuthConfig authConfig) throws IOException {
+		if (authConfig.getSkipHostKeyVerification()) {
 			client.addHostKeyVerifier(new PromiscuousVerifier());
 		}
 		client.loadKnownHosts();
 		client.connect(host, port);
 
-		final String type = authConfig.get("type") != null ? authConfig.get("type") : "public_key";
-		final String user = authConfig.get("user") != null ? authConfig.get("user") : System.getProperty("user.name");
+		final String type = authConfig.getType();
+		final String user = authConfig.getUser().or(System.getProperty("user.name"));
 
 		if ("password".equals(type)) {
-			client.authPassword(user, authConfig.get("password"));
-		} else if ("public_key".equals(type)) {
-			final String key_path = authConfig.get("key_path");
-			if (key_path == null) {
-				client.authPublickey(user);
+			if (authConfig.getPassword().isPresent()) {
+				client.authPassword(user, authConfig.getPassword().get());
 			} else {
-				client.authPublickey(user, key_path);
+				throw new IllegalStateException("Password is not set.");
+			}
+		} else if ("public_key".equals(type)) {
+			if (authConfig.getKeyPath().isPresent()) {
+				client.authPublickey(user, authConfig.getKeyPath().get());
+			} else {
+				client.authPublickey(user);
 			}
 		} else {
 			throw new UnsupportedOperationException("Unsupported auth type : " + type);
