@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -63,8 +62,7 @@ public class RemoteFileInputPlugin
 		Optional<String> getPathCommand();
 
 		@Config("auth")
-		@ConfigDefault("{}")
-		Map<String, String> getAuth();
+		AuthConfig getAuthConfig();
 
 		@Config("ignore_not_found_hosts")
 		@ConfigDefault("false")
@@ -82,6 +80,28 @@ public class RemoteFileInputPlugin
 
 		@ConfigInject
 		BufferAllocator getBufferAllocator();
+	}
+
+	public interface AuthConfig extends Task {
+		@Config("type")
+		@ConfigDefault("\"public_key\"")
+		String getType();
+
+		@Config("user")
+		@ConfigDefault("null")
+		Optional<String> getUser();
+
+		@Config("key_path")
+		@ConfigDefault("null")
+		Optional<String> getKeyPath();
+
+		@Config("password")
+		@ConfigDefault("null")
+		Optional<String> getPassword();
+
+		@Config("skip_host_key_verification")
+		@ConfigDefault("false")
+		boolean getSkipHostKeyVerification();
 	}
 
 	private final Logger log = Exec.getLogger(getClass());
@@ -223,7 +243,7 @@ public class RemoteFileInputPlugin
 
 	private boolean exists(Target target, PluginTask task) throws IOException {
 		try (SSHClient client = SSHClient.getInstance()) {
-			client.connect(target.getHost(), task.getPort(), task.getAuth());
+			client.connect(target.getHost(), task.getPort(), task.getAuthConfig());
 
 			final String checkCmd = "ls " + target.getPath();    // TODO: windows
 			final int timeout = 5/* second */;
@@ -240,7 +260,7 @@ public class RemoteFileInputPlugin
 
 	private InputStream download(Target target, PluginTask task) throws IOException {
 		try (SSHClient client = SSHClient.getInstance()) {
-			client.connect(target.getHost(), task.getPort(), task.getAuth());
+			client.connect(target.getHost(), task.getPort(), task.getAuthConfig());
 			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
 			client.scpDownload(target.getPath(), stream);
 			return new ByteArrayInputStream(stream.toByteArray());
