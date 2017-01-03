@@ -53,11 +53,11 @@ public class SSHClient implements Closeable {
 		if ("password".equals(type)) {
 			client.authPassword(user, authConfig.get("password"));
 		} else if ("public_key".equals(type)) {
-			final String key_path = authConfig.get("key_path");
-			if (key_path == null) {
+			final String keyPath = authConfig.get("key_path");
+			if (keyPath == null) {
 				client.authPublickey(user);
 			} else {
-				client.authPublickey(user, key_path);
+				client.authPublickey(user, keyPath);
 			}
 		} else {
 			throw new UnsupportedOperationException("Unsupported auth type : " + type);
