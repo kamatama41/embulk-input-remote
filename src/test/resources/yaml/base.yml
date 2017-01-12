@@ -1,10 +1,11 @@
 type: remote
 hosts:
-  - localhost
-port: 10022
+  - localhost:10022
 path: /mount/test01.csv
 auth:
   user: root
+  type: password
+  password: root
   skip_host_key_verification: true
 parser:
   type: csv
