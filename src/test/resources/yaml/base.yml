@@ -5,8 +5,6 @@ port: 10022
 path: /mount/test01.csv
 auth:
   user: root
-  type: password
-  password: screencast
   skip_host_key_verification: true
 parser:
   type: csv
