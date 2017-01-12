@@ -14,7 +14,7 @@ services:
   - docker
 
 before_install:
-  - ssh-keygen -f ${KEY_PATH} -N ''
+  - ssh-keygen -t ecdsa -f ${KEY_PATH} -N ''
   - docker build -t eg_sshd .
   - >-
     docker run -d
