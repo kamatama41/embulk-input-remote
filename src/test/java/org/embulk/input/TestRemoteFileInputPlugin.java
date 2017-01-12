@@ -41,7 +41,7 @@ public class TestRemoteFileInputPlugin
         final String yaml = ""
                 + "auth:\n"
                 + "  type: password\n"
-                + "  password: screencast\n";
+                + "  password: root\n";
         final ConfigSource passwordAuth = embulk.configLoader().fromYamlString(yaml);
         Path out = embulk.createTempFile("csv");
 

@@ -15,14 +15,13 @@ services:
 
 before_install:
   - ssh-keygen -t ecdsa -f ${KEY_PATH} -N ''
-  - docker build -t eg_sshd .
   - >-
     docker run -d
     -p 10022:22
     -v ${PWD}/src/test/resources/input/:/mount
     -v ${PWD}/id_rsa_test.pub:/root/.ssh/authorized_keys
     --name test_sshd
-    eg_sshd
+    sickp/alpine-sshd:7.2
   - docker ps -a
 
 script:
