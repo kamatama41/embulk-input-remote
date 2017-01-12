@@ -38,14 +38,9 @@ public class TestRemoteFileInputPlugin
     public void loadFromRemote() throws Exception
     {
         ConfigSource baseConfig = EmbulkTests.config("BASE_YAML");
-        final String yaml = ""
-                + "auth:\n"
-                + "  type: password\n"
-                + "  password: root\n";
-        final ConfigSource passwordAuth = embulk.configLoader().fromYamlString(yaml);
         Path out = embulk.createTempFile("csv");
 
-        embulk.runInput(baseConfig.merge(passwordAuth), out);
+        embulk.runInput(baseConfig, out);
 
         assertThat(
                 readSortedFile(out),
@@ -65,6 +60,25 @@ public class TestRemoteFileInputPlugin
         Path out = embulk.createTempFile("csv");
 
         embulk.runInput(baseConfig.merge(publicKeyAuth), out);
+
+        assertThat(
+                readSortedFile(out),
+                is(readResource("expect/test01.csv")));
+    }
+
+    @Test
+    public void testDefaultPort() throws Exception
+    {
+        ConfigSource baseConfig = EmbulkTests.config("BASE_YAML");
+        final String yaml = ""
+                + "hosts:\n"
+                + "  - localhost\n"
+                + "default_port: 10022\n";
+        final ConfigSource defaultPort = embulk.configLoader().fromYamlString(yaml);
+
+        Path out = embulk.createTempFile("csv");
+
+        embulk.runInput(baseConfig.merge(defaultPort), out);
 
         assertThat(
                 readSortedFile(out),

@@ -12,10 +12,10 @@ This plugin load data from Remote hosts by SCP
 
 ## Configuration
 
-- **hosts**: Target hosts (list, default: [])
+- **hosts**: Target hosts, format should be `host` or `host:port` (overrides `default_port`) (list, default: [])
 - **hosts_command**: Command for getting hosts(Windows not supported). If given the option, "hosts" is overwritten. (string, default: null)
 - **hosts_separator**: Separator for "hosts_command" result (string, default: " ")
-- **port**: Port number for SSH (integer, default: 22)
+- **default_port**: Default port number for SSH (integer, default: 22)
 - **path**: Path of remote host (File or Directory) (string, default: "")
 - **path_command**: Command for getting path (Windows not supported). If given the option "path" is overwritten. (string, default: null)
 - **ignore_not_found_hosts**: If the option is true, Hosts which meet the following conditions are skipped. (Means they are not included into resume target.) (boolean, default: false)
@@ -35,7 +35,7 @@ in:
   type: remote
   hosts:
     - host1
-    - host2
+    - host2:10022
 #  hosts_command: echo 'host1,host2'
 #  hosts_separator: ','
   path: /some/path/20150414125923

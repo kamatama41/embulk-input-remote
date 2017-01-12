@@ -49,9 +49,9 @@ public class RemoteFileInputPlugin
 		@ConfigDefault("\" \"")
 		String getHostsSeparator();
 
-		@Config("port")
+		@Config("default_port")
 		@ConfigDefault("22")
-		int getPort();
+		int getDefaultPort();
 
 		@Config("path")
 		@ConfigDefault("\"\"")
@@ -125,7 +125,13 @@ public class RemoteFileInputPlugin
 		final ImmutableList.Builder<Target> builder = ImmutableList.builder();
 		Target lastTarget = task.getLastTarget().orNull();
 		for (String host : hosts) {
-			Target target = new Target(host, path);
+			String[] split = host.split(":");
+			final String targetHost = split[0];
+			int targetPort = task.getDefaultPort();
+			if (split.length > 1) {
+				targetPort = Integer.valueOf(split[1]);
+			}
+			Target target = new Target(targetHost, targetPort, path);
 
 			if (lastTarget == null || target.compareTo(lastTarget) > 0) {
 				if (task.getIgnoreNotFoundHosts()) {
@@ -242,7 +248,7 @@ public class RemoteFileInputPlugin
 	}
 
 	private boolean exists(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = SSHClient.connect(target.getHost(), task.getPort(), task.getAuthConfig())) {
+		try (SSHClient client = SSHClient.connect(target.getHost(), target.getPort(), task.getAuthConfig())) {
 			final String checkCmd = "ls " + target.getPath();    // TODO: windows
 			final int timeout = 5/* second */;
 			final SSHClient.CommandResult commandResult = client.execCommand(checkCmd, timeout);
@@ -257,7 +263,7 @@ public class RemoteFileInputPlugin
 	}
 
 	private InputStream download(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = SSHClient.connect(target.getHost(), task.getPort(), task.getAuthConfig())) {
+		try (SSHClient client = SSHClient.connect(target.getHost(), target.getPort(), task.getAuthConfig())) {
 			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
 			client.scpDownload(target.getPath(), stream);
 			return new ByteArrayInputStream(stream.toByteArray());
@@ -266,18 +272,26 @@ public class RemoteFileInputPlugin
 
 	public static class Target implements Comparable<Target> {
 		private final String host;
+		private final int port;
 		private final String path;
 
 		@JsonCreator
 		public Target(
 				@JsonProperty("host") String host,
-				@JsonProperty("path") String path) {
+				@JsonProperty("port") int port,
+				@JsonProperty("path") String path
+		) {
 			this.host = host;
+			this.port = port;
 			this.path = path;
 		}
 
 		public String getHost() {
 			return host;
+		}
+
+		public int getPort() {
+			return port;
 		}
 
 		public String getPath() {
@@ -294,7 +308,7 @@ public class RemoteFileInputPlugin
 
 		@Override
 		public String toString() {
-			return host + ":" + path;
+			return host + ":" + port + ":" + path;
 		}
 	}
 }
