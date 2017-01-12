@@ -1,11 +1,7 @@
 package org.embulk.input.remote;
 
-import com.hierynomus.sshj.signature.SignatureEdDSA;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.connection.channel.direct.Session;
-import net.schmizz.sshj.signature.SignatureDSA;
-import net.schmizz.sshj.signature.SignatureECDSA;
-import net.schmizz.sshj.signature.SignatureRSA;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
@@ -15,7 +11,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 public class SSHClient implements Closeable {
@@ -26,17 +21,7 @@ public class SSHClient implements Closeable {
 			String host, int port, RemoteFileInputPlugin.AuthConfig authConfig
 	) throws IOException {
 
-		SSHClient client =  new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig(){
-			@Override
-			protected void initSignatureFactories() {
-				setSignatureFactories(Arrays.asList(
-						new SignatureRSA.Factory(),
-						new SignatureECDSA.Factory(),
-						new SignatureDSA.Factory(),
-						new SignatureEdDSA.Factory()
-				));
-			}
-		}));
+		SSHClient client =  new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig()));
 		client.connectToHost(host, port, authConfig);
 		return client;
 	}

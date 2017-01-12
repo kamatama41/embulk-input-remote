@@ -6,14 +6,22 @@ jdk:
   - oraclejdk8
 
 env:
-  - YAML_TEST01=$PWD/src/test/resources/yaml/test01.yml
+  - >-
+   BASE_YAML=$PWD/src/test/resources/yaml/base.yml
+   KEY_PATH=$PWD/id_rsa_test
 
 services:
   - docker
 
 before_install:
-  - docker build -t eg_sshd .
-  - docker run -d -p 10022:22 -v $PWD/src/test/resources/input:/mount --name test_sshd eg_sshd
+  - ssh-keygen -t ecdsa -f ${KEY_PATH} -N ''
+  - >-
+    docker run -d
+    -p 10022:22
+    -v ${PWD}/src/test/resources/input/:/mount
+    -v ${PWD}/id_rsa_test.pub:/root/.ssh/authorized_keys
+    --name test_sshd
+    sickp/alpine-sshd:7.2
   - docker ps -a
 
 script:
