@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/kamatama41/tfenv.svg?branch=master)](https://travis-ci.org/kamatama41/tfenv)
+[![Build Status](https://travis-ci.org/kamatama41/embulk-input-remote.svg?branch=master)](https://travis-ci.org/kamatama41/embulk-input-remote)
 
 # Remote file input plugin for [Embulk](https://github.com/embulk/embulk)
 
