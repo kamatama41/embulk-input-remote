@@ -12,6 +12,7 @@ public class MyTestingEmbulk extends TestingEmbulk {
     public static class Builder extends TestingEmbulk.Builder {
         public TestingEmbulk build() {
             this.registerPlugin(OutputPlugin.class, "memory", MemoryOutputPlugin.class);
+            MemoryOutputPlugin.clearRecords();
             return new MyTestingEmbulk(this);
         }
     }

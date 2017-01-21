@@ -78,6 +78,11 @@ public class MemoryOutputPlugin implements OutputPlugin
         };
     }
 
+    public static void clearRecords()
+    {
+        Recorder.clearRecords();
+    }
+
     public static List<Record> getRecords()
     {
         return Recorder.getRecords();
@@ -85,7 +90,7 @@ public class MemoryOutputPlugin implements OutputPlugin
 
     private static class Recorder
     {
-        private static final List<Record> records = new ArrayList<>();
+        private static List<Record> records = new ArrayList<>();
 
         private Recorder() { }
 
@@ -103,9 +108,14 @@ public class MemoryOutputPlugin implements OutputPlugin
             records.add(new Record(values.build(), columns.build()));
         }
 
-        synchronized static List<Record> getRecords()
+        static void clearRecords()
         {
-            return records;
+            records = new ArrayList<>();
+        }
+
+        static List<Record> getRecords()
+        {
+            return new ArrayList<>(records);
         }
     }
 
