@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.core.DockerClientBuilder;
+import org.embulk.EmbulkEmbed;
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.InputPlugin;
 import org.embulk.test.MemoryOutputPlugin;
@@ -112,6 +113,35 @@ public class TestRemoteFileInputPlugin {
             );
         }
 
+        @Test
+        public void testResume() throws Exception
+        {
+            ConfigSource config = baseConfig();
+
+            // Stop host2 temporarily
+            stopContainer(CONTAINER_ID_HOST2);
+
+            // Run (but failed)
+            EmbulkEmbed.ResumableResult resumableResult = embulk.runInput(config);
+
+            assertThat(resumableResult.isSuccessful(), is(false));
+            assertValues(
+                    values(1L, "kamatama41"),
+                    values(2L, "kamatama42")
+            );
+
+            // Start host2 again
+            startContainer(CONTAINER_ID_HOST2);
+
+            // Resume
+            resumableResult = embulk.runInput(config, resumableResult.getResumeState());
+
+            assertThat(resumableResult.isSuccessful(), is(true));
+            assertValues(
+                    values(3L, "kamatama43"),
+                    values(4L, "kamatama44")
+            );
+        }
     }
 
     public abstract static class TestBase {

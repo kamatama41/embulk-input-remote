@@ -2,6 +2,7 @@ package org.embulk.test;
 
 import org.embulk.EmbulkEmbed;
 import org.embulk.config.ConfigSource;
+import org.embulk.exec.ResumeState;
 import org.embulk.spi.OutputPlugin;
 
 import java.io.IOException;
@@ -12,7 +13,6 @@ public class MyTestingEmbulk extends TestingEmbulk {
     public static class Builder extends TestingEmbulk.Builder {
         public TestingEmbulk build() {
             this.registerPlugin(OutputPlugin.class, "memory", MemoryOutputPlugin.class);
-            MemoryOutputPlugin.clearRecords();
             return new MyTestingEmbulk(this);
         }
     }
@@ -29,7 +29,11 @@ public class MyTestingEmbulk extends TestingEmbulk {
         this.superEmbed = extractSuperField("embed");
     }
 
-    public RunResult runInput(ConfigSource inConfig) throws IOException {
+    public EmbulkEmbed.ResumableResult runInput(ConfigSource inConfig) throws IOException {
+        return runInput(inConfig, (ResumeState) null);
+    }
+
+    public EmbulkEmbed.ResumableResult runInput(ConfigSource inConfig, ResumeState resumeState) throws IOException {
         ConfigSource execConfig = newConfig()
                 .set("min_output_tasks", 1);
 
@@ -41,8 +45,12 @@ public class MyTestingEmbulk extends TestingEmbulk {
                 .set("in", inConfig)
                 .set("out", outConfig);
 
-        // embed.run returns TestingBulkLoader.TestingExecutionResult because
-        return (RunResult) superEmbed.run(config);
+        MemoryOutputPlugin.clearRecords();
+        if (resumeState == null) {
+            return superEmbed.runResumable(config);
+        } else {
+            return superEmbed.new ResumeStateAction(config, resumeState).resume();
+        }
     }
 
     @SuppressWarnings("unchecked")
