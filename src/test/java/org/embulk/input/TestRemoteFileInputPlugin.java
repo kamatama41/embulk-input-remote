@@ -93,32 +93,32 @@ public class TestRemoteFileInputPlugin {
             startContainer(CONTAINER_ID_HOST2);
         }
 
-        @Test
-        public void testConfDiff() throws Exception
-        {
-            final ConfigSource host2Config = newConfig()
-                    .set("hosts", Collections.singletonList("localhost:10023"));
-            ConfigSource config = baseConfig().merge(host2Config);
-
-            // Run
-            TestingEmbulk.RunResult runResult = embulk.runInput(config);
-            assertValues(
-                    values(3L, "kamatama43"),
-                    values(4L, "kamatama44")
-            );
-
-            // Re-run with additional host1
-            final ConfigSource multiHost = newConfig()
-                    .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
-            config = baseConfig().merge(multiHost);
-
-            embulk.runInput(config, runResult.getConfigDiff());
-
-            assertValues(
-                    values(1L, "kamatama41"),
-                    values(2L, "kamatama42")
-            );
-        }
+//        @Test
+//        public void testConfDiff() throws Exception
+//        {
+//            final ConfigSource host2Config = newConfig()
+//                    .set("hosts", Collections.singletonList("localhost:10023"));
+//            ConfigSource config = baseConfig().merge(host2Config);
+//
+//            // Run
+//            TestingEmbulk.RunResult runResult = embulk.runInput(config);
+//            assertValues(
+//                    values(3L, "kamatama43"),
+//                    values(4L, "kamatama44")
+//            );
+//
+//            // Re-run with additional host1
+//            final ConfigSource multiHost = newConfig()
+//                    .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
+//            config = baseConfig().merge(multiHost);
+//
+//            embulk.runInput(config, runResult.getConfigDiff());
+//
+//            assertValues(
+//                    values(1L, "kamatama41"),
+//                    values(2L, "kamatama42")
+//            );
+//        }
 
         @Test
         public void testResume() throws Exception
