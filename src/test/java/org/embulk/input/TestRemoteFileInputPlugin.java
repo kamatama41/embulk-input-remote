@@ -4,8 +4,9 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.InputPlugin;
+import org.embulk.test.MemoryOutputPlugin;
 import org.embulk.test.MyEmbulkTests;
-import org.embulk.test.TestingEmbulk;
+import org.embulk.test.MyTestingEmbulk;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -14,10 +15,10 @@ import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-import static org.embulk.test.EmbulkTests.readResource;
-import static org.embulk.test.EmbulkTests.readSortedFile;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -28,55 +29,51 @@ public class TestRemoteFileInputPlugin
         @Test
         public void loadFromRemote() throws Exception
         {
-            Path out = embulk.createTempFile("csv");
+            embulk.runInput(baseConfig());
 
-            embulk.runInput(getBaseConfig(), out);
-
-            assertThat(
-                    readSortedFile(out),
-                    is(readResource("expect/test01.csv")));
+            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
+            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
+            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
         }
 
         @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
         @Test
         public void loadFromRemoteViaPublicKey() throws Exception
         {
-            final String yaml = ""
-                    + "auth:\n"
-                    + "  type: public_key\n"
-                    + "  key_path: " + System.getenv("KEY_PATH") + "\n";
-            final ConfigSource publicKeyAuth = embulk.configLoader().fromYamlString(yaml);
-            Path out = embulk.createTempFile("csv");
+            String keyPath = System.getenv("KEY_PATH");
+            if (keyPath == null) {
+                keyPath = "./id_rsa_test";
+            }
 
-            embulk.runInput(getBaseConfig().merge(publicKeyAuth), out);
+            final ConfigSource publicKeyAuth = newConfig().set("auth", newConfig()
+                    .set("type", "public_key")
+                    .set("key_path", keyPath)
+            );
+            embulk.runInput(baseConfig().merge(publicKeyAuth));
 
-            assertThat(
-                    readSortedFile(out),
-                    is(readResource("expect/test01.csv")));
+            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
+            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
+            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
         }
 
         @Test
         public void testDefaultPort() throws Exception
         {
-            final String yaml = ""
-                    + "hosts:\n"
-                    + "  - localhost\n"
-                    + "default_port: 10022\n";
-            final ConfigSource defaultPort = embulk.configLoader().fromYamlString(yaml);
+            final ConfigSource defaultPort = newConfig()
+                    .set("hosts", Collections.singletonList("localhost"))
+                    .set("default_port", 10022);
 
-            Path out = embulk.createTempFile("csv");
+            embulk.runInput(baseConfig().merge(defaultPort));
 
-            embulk.runInput(getBaseConfig().merge(defaultPort), out);
-
-            assertThat(
-                    readSortedFile(out),
-                    is(readResource("expect/test01.csv")));
+            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
+            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
+            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
         }
     }
 
     public abstract static class TestBase {
         @Rule
-        public TestingEmbulk embulk = TestingEmbulk
+        public MyTestingEmbulk embulk = (MyTestingEmbulk) MyTestingEmbulk
                 .builder()
                 .registerPlugin(InputPlugin.class, "remote", RemoteFileInputPlugin.class)
                 .build();
@@ -88,8 +85,12 @@ public class TestRemoteFileInputPlugin
             rootLogger.setLevel(Level.toLevel("debug"));
         }
 
-        ConfigSource getBaseConfig() {
+        ConfigSource baseConfig() {
             return MyEmbulkTests.configFromResource("yaml/base.yml");
+        }
+
+        ConfigSource newConfig() {
+            return embulk.newConfig();
         }
     }
 }
