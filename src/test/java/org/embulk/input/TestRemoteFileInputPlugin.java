@@ -17,23 +17,25 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 @RunWith(Enclosed.class)
-public class TestRemoteFileInputPlugin
-{
-    public static class TestForOneHost extends TestBase {
+public class TestRemoteFileInputPlugin {
+    public static class OneHost extends TestBase {
         @Test
         public void loadFromRemote() throws Exception
         {
             embulk.runInput(baseConfig());
 
-            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
-            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
-            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
+            assertValues(
+                    values(1L, "kamatama41"),
+                    values(2L, "kamatama42")
+            );
         }
 
         @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
@@ -51,9 +53,10 @@ public class TestRemoteFileInputPlugin
             );
             embulk.runInput(baseConfig().merge(publicKeyAuth));
 
-            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
-            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
-            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
+            assertValues(
+                    values(1L, "kamatama41"),
+                    values(2L, "kamatama42")
+            );
         }
 
         @Test
@@ -65,9 +68,10 @@ public class TestRemoteFileInputPlugin
 
             embulk.runInput(baseConfig().merge(defaultPort));
 
-            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
-            assertThat(records.get(0).getValues(), is(Arrays.<Object>asList(1L, "kamatama41")));
-            assertThat(records.get(1).getValues(), is(Arrays.<Object>asList(2L, "kamatama42")));
+            assertValues(
+                    values(1L, "kamatama41"),
+                    values(2L, "kamatama42")
+            );
         }
     }
 
@@ -91,6 +95,24 @@ public class TestRemoteFileInputPlugin
 
         ConfigSource newConfig() {
             return embulk.newConfig();
+        }
+
+        void assertValues(List... valuesList) {
+            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
+
+            Set<List> actual = new HashSet<>();
+            for (MemoryOutputPlugin.Record record : records) {
+                actual.add(record.getValues());
+            }
+
+            Set<List> expected = new HashSet<>();
+            Collections.addAll(expected, valuesList);
+
+            assertThat(actual, is(expected));
+        }
+
+        List values(Object... values) {
+            return Arrays.asList(values);
         }
     }
 }
