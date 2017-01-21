@@ -27,6 +27,7 @@ dependencies {
     provided "org.embulk:embulk-core:0.8.15"
     testCompile "org.embulk:embulk-standards:0.8.15"
     testCompile "org.embulk:embulk-test:0.8.15"
+    testCompile "com.github.docker-java:docker-java:3.0.7"
 // for local testing
 //    testCompile files('../embulk/embulk-test/build/libs/embulk-test-0.8.15.jar')
 //    testCompile 'junit:junit:4.12'
