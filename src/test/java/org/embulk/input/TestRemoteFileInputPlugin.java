@@ -123,9 +123,12 @@ public class TestRemoteFileInputPlugin {
 
         @Before
         public void prepare() {
-            // Show debug logs
-            Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-            rootLogger.setLevel(Level.toLevel("debug"));
+            String logLevel = System.getenv("LOG_LEVEL");
+            if (logLevel != null) {
+                // Set log level
+                Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+                rootLogger.setLevel(Level.toLevel(logLevel));
+            }
         }
 
         ConfigSource baseConfig() {
