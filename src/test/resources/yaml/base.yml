@@ -1,7 +1,7 @@
 type: remote
 hosts:
   - localhost:10022
-path: /mount/test01.csv
+path: /mount/test.csv
 auth:
   user: root
   type: password

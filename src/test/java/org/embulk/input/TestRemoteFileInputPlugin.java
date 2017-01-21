@@ -4,7 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.InputPlugin;
-import org.embulk.test.EmbulkTests;
+import org.embulk.test.MyEmbulkTests;
 import org.embulk.test.TestingEmbulk;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -28,10 +28,9 @@ public class TestRemoteFileInputPlugin
         @Test
         public void loadFromRemote() throws Exception
         {
-            ConfigSource baseConfig = EmbulkTests.config("BASE_YAML");
             Path out = embulk.createTempFile("csv");
 
-            embulk.runInput(baseConfig, out);
+            embulk.runInput(getBaseConfig(), out);
 
             assertThat(
                     readSortedFile(out),
@@ -42,7 +41,6 @@ public class TestRemoteFileInputPlugin
         @Test
         public void loadFromRemoteViaPublicKey() throws Exception
         {
-            ConfigSource baseConfig = EmbulkTests.config("BASE_YAML");
             final String yaml = ""
                     + "auth:\n"
                     + "  type: public_key\n"
@@ -50,7 +48,7 @@ public class TestRemoteFileInputPlugin
             final ConfigSource publicKeyAuth = embulk.configLoader().fromYamlString(yaml);
             Path out = embulk.createTempFile("csv");
 
-            embulk.runInput(baseConfig.merge(publicKeyAuth), out);
+            embulk.runInput(getBaseConfig().merge(publicKeyAuth), out);
 
             assertThat(
                     readSortedFile(out),
@@ -60,7 +58,6 @@ public class TestRemoteFileInputPlugin
         @Test
         public void testDefaultPort() throws Exception
         {
-            ConfigSource baseConfig = EmbulkTests.config("BASE_YAML");
             final String yaml = ""
                     + "hosts:\n"
                     + "  - localhost\n"
@@ -69,7 +66,7 @@ public class TestRemoteFileInputPlugin
 
             Path out = embulk.createTempFile("csv");
 
-            embulk.runInput(baseConfig.merge(defaultPort), out);
+            embulk.runInput(getBaseConfig().merge(defaultPort), out);
 
             assertThat(
                     readSortedFile(out),
@@ -89,6 +86,10 @@ public class TestRemoteFileInputPlugin
             // Show degub logs
             Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
             rootLogger.setLevel(Level.toLevel("debug"));
+        }
+
+        ConfigSource getBaseConfig() {
+            return MyEmbulkTests.configFromResource("yaml/base.yml");
         }
     }
 }
