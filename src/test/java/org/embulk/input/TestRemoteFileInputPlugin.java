@@ -11,6 +11,7 @@ import org.embulk.spi.InputPlugin;
 import org.embulk.test.MemoryOutputPlugin;
 import org.embulk.test.MyEmbulkTests;
 import org.embulk.test.MyTestingEmbulk;
+import org.embulk.test.TestingEmbulk;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -92,37 +93,45 @@ public class TestRemoteFileInputPlugin {
             startContainer(CONTAINER_ID_HOST2);
         }
 
-        @Override
-        ConfigSource baseConfig() {
-            ConfigSource baseConfig = super.baseConfig();
+        @Test
+        public void testConfDiff() throws Exception
+        {
+            final ConfigSource host2Config = newConfig()
+                    .set("hosts", Collections.singletonList("localhost:10023"));
+            ConfigSource config = baseConfig().merge(host2Config);
+
+            // Run
+            TestingEmbulk.RunResult runResult = embulk.runInput(config);
+            assertValues(
+                    values(3L, "kamatama43"),
+                    values(4L, "kamatama44")
+            );
+
+            // Re-run with additional host1
             final ConfigSource multiHost = newConfig()
                     .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
-            return baseConfig.merge(multiHost);
-        }
+            config = baseConfig().merge(multiHost);
 
-        @Test
-        public void testDefault() throws Exception
-        {
-            embulk.runInput(baseConfig());
+            embulk.runInput(config, runResult.getConfigDiff());
 
             assertValues(
                     values(1L, "kamatama41"),
-                    values(2L, "kamatama42"),
-                    values(3L, "kamatama43"),
-                    values(4L, "kamatama44")
+                    values(2L, "kamatama42")
             );
         }
 
         @Test
         public void testResume() throws Exception
         {
-            ConfigSource config = baseConfig();
+            final ConfigSource multiHost = newConfig()
+                    .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
+            final ConfigSource config = baseConfig().merge(multiHost);
 
             // Stop host2 temporarily
             stopContainer(CONTAINER_ID_HOST2);
 
             // Run (but failed)
-            EmbulkEmbed.ResumableResult resumableResult = embulk.runInput(config);
+            EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
 
             assertThat(resumableResult.isSuccessful(), is(false));
             assertValues(
@@ -134,7 +143,7 @@ public class TestRemoteFileInputPlugin {
             startContainer(CONTAINER_ID_HOST2);
 
             // Resume
-            resumableResult = embulk.runInput(config, resumableResult.getResumeState());
+            resumableResult = embulk.resume(config, resumableResult.getResumeState());
 
             assertThat(resumableResult.isSuccessful(), is(true));
             assertValues(

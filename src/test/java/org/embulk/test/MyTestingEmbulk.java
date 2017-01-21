@@ -1,6 +1,7 @@
 package org.embulk.test;
 
 import org.embulk.EmbulkEmbed;
+import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
 import org.embulk.exec.ResumeState;
 import org.embulk.spi.OutputPlugin;
@@ -29,11 +30,36 @@ public class MyTestingEmbulk extends TestingEmbulk {
         this.superEmbed = extractSuperField("embed");
     }
 
-    public EmbulkEmbed.ResumableResult runInput(ConfigSource inConfig) throws IOException {
-        return runInput(inConfig, (ResumeState) null);
+    public RunResult runInput(ConfigSource inConfig) throws IOException {
+        return runInput(inConfig, (ConfigDiff) null);
     }
 
-    public EmbulkEmbed.ResumableResult runInput(ConfigSource inConfig, ResumeState resumeState) throws IOException {
+    public RunResult runInput(ConfigSource inConfig, ConfigDiff confDiff) throws IOException {
+        ConfigSource execConfig = newConfig()
+                .set("min_output_tasks", 1);
+
+        ConfigSource outConfig = newConfig()
+                .set("type", "memory");
+
+        ConfigSource config = newConfig()
+                .set("exec", execConfig)
+                .set("in", inConfig)
+                .set("out", outConfig);
+
+        // embed.run returns TestingBulkLoader.TestingExecutionResult because
+        MemoryOutputPlugin.clearRecords();
+        if (confDiff == null) {
+            return (RunResult) superEmbed.run(config);
+        } else {
+            return (RunResult) superEmbed.run(config.merge(confDiff));
+        }
+    }
+
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig) throws IOException {
+        return resume(inConfig, null);
+    }
+
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig, ResumeState resumeState) throws IOException {
         ConfigSource execConfig = newConfig()
                 .set("min_output_tasks", 1);
 
