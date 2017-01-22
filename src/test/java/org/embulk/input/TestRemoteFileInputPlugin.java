@@ -13,7 +13,6 @@ import org.embulk.test.MyEmbulkTests;
 import org.embulk.test.MyTestingEmbulk;
 import org.embulk.test.TestingEmbulk;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,14 +38,11 @@ public class TestRemoteFileInputPlugin {
             .registerPlugin(InputPlugin.class, "remote", RemoteFileInputPlugin.class)
             .build();
 
-    @BeforeClass
-    public static void startContainers() {
-        startContainer(CONTAINER_ID_HOST1);
-        startContainer(CONTAINER_ID_HOST2);
-    }
-
     @Before
     public void prepare() {
+        startContainer(CONTAINER_ID_HOST1);
+        startContainer(CONTAINER_ID_HOST2);
+
         String logLevel = System.getenv("LOG_LEVEL");
         if (logLevel != null) {
             // Set log level
@@ -59,7 +55,7 @@ public class TestRemoteFileInputPlugin {
     public void loadFromRemote() throws Exception
     {
         embulk.runInput(baseConfig());
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
     }
 
     @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
@@ -77,7 +73,7 @@ public class TestRemoteFileInputPlugin {
         );
         embulk.runInput(baseConfig().merge(publicKeyAuth));
 
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
     }
 
     @Test
@@ -90,8 +86,8 @@ public class TestRemoteFileInputPlugin {
         // Run
         TestingEmbulk.RunResult runResult = embulk.runInput(config);
         assertValues(
-                values(1L, "kamatama41"),
-                values(2L, "kamatama42")
+                values(1L, "user1"),
+                values(2L, "user2")
         );
     }
 
@@ -104,7 +100,7 @@ public class TestRemoteFileInputPlugin {
 
         embulk.runInput(baseConfig().merge(defaultPort));
 
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
     }
 
     @Test
@@ -116,7 +112,7 @@ public class TestRemoteFileInputPlugin {
 
         // Run
         TestingEmbulk.RunResult runResult = embulk.runInput(config);
-        assertValues(values(2L, "kamatama42"));
+        assertValues(values(2L, "user2"));
 
         // Re-run with additional host1
         final ConfigSource multiHost = newConfig()
@@ -125,7 +121,7 @@ public class TestRemoteFileInputPlugin {
 
         embulk.runInput(config, runResult.getConfigDiff());
 
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
     }
 
     @Test
@@ -142,7 +138,7 @@ public class TestRemoteFileInputPlugin {
         EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
 
         assertThat(resumableResult.isSuccessful(), is(false));
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
 
         // Start host2 again
         startContainer(CONTAINER_ID_HOST2);
@@ -151,7 +147,7 @@ public class TestRemoteFileInputPlugin {
         resumableResult = embulk.resume(config, resumableResult.getResumeState());
 
         assertThat(resumableResult.isSuccessful(), is(true));
-        assertValues(values(2L, "kamatama42"));
+        assertValues(values(2L, "user2"));
     }
 
     @Test
@@ -169,7 +165,7 @@ public class TestRemoteFileInputPlugin {
         EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
 
         assertThat(resumableResult.isSuccessful(), is(true));
-        assertValues(values(1L, "kamatama41"));
+        assertValues(values(1L, "user1"));
     }
 
     private ConfigSource baseConfig() {
