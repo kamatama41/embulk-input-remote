@@ -81,6 +81,21 @@ public class TestRemoteFileInputPlugin {
     }
 
     @Test
+    public void testMultiHosts() throws Exception
+    {
+        final ConfigSource multiHosts = newConfig()
+                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
+        final ConfigSource config = baseConfig().merge(multiHosts);
+
+        // Run
+        TestingEmbulk.RunResult runResult = embulk.runInput(config);
+        assertValues(
+                values(1L, "kamatama41"),
+                values(2L, "kamatama42")
+        );
+    }
+
+    @Test
     public void testDefaultPort() throws Exception
     {
         final ConfigSource defaultPort = newConfig()
