@@ -179,10 +179,8 @@ public class TestRemoteFileInputPlugin {
         }
 
         void assertValues(List... valuesList) {
-            List<MemoryOutputPlugin.Record> records = MemoryOutputPlugin.getRecords();
-
             Set<List> actual = new HashSet<>();
-            for (MemoryOutputPlugin.Record record : records) {
+            for (MemoryOutputPlugin.Record record : MemoryOutputPlugin.getRecords()) {
                 actual.add(record.getValues());
             }
 
