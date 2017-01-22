@@ -14,21 +14,8 @@ services:
 
 before_install:
   - ssh-keygen -t ecdsa -f ${KEY_PATH} -N ''
-  - >-
-    docker run -d
-    -p 10022:22
-    -v ${PWD}/src/test/resources/input/host1/:/mount
-    -v ${PWD}/id_rsa_test.pub:/root/.ssh/authorized_keys
-    --name test_sshd1
-    sickp/alpine-sshd:7.2
-  - >-
-    docker run -d
-    -p 10023:22
-    -v ${PWD}/src/test/resources/input/host2/:/mount
-    -v ${PWD}/id_rsa_test.pub:/root/.ssh/authorized_keys
-    --name test_sshd2
-    sickp/alpine-sshd:7.2
-  - docker ps -a
+  - docker-compose up -d
+  - docker-compose ps
 
 script:
   - ./gradlew --info check
