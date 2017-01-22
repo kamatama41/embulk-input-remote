@@ -168,6 +168,23 @@ public class TestRemoteFileInputPlugin {
         assertValues(values(1L, "user1"));
     }
 
+    @Test
+    public void testCommandOptions() throws Exception
+    {
+        final ConfigSource ignoreNotFoundHosts = newConfig()
+                .set("hosts_command", "echo localhost:10022,localhost:10023")
+                .set("hosts_separator", ",")
+                .set("path_command", "echo /mount/test_command.csv");
+        final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
+
+        embulk.runInput(config);
+
+        assertValues(
+                values(1L, "command_user1"),
+                values(2L, "command_user2")
+        );
+    }
+
     private ConfigSource baseConfig() {
         return MyEmbulkTests.configFromResource("yaml/base.yml");
     }
