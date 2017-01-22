@@ -8,8 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,8 +30,6 @@ import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.TransactionalFileInput;
 import org.embulk.spi.util.InputStreamTransactionalFileInput;
 import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
 
 public class RemoteFileInputPlugin
 		implements FileInputPlugin {
@@ -68,11 +66,11 @@ public class RemoteFileInputPlugin
 		@ConfigDefault("false")
 		boolean getIgnoreNotFoundHosts();
 
-		@Config("last_target")
-		@ConfigDefault("null")
-		Optional<Target> getLastTarget();
+		@Config("done_targets")
+		@ConfigDefault("[]")
+		List<Target> getDoneTargets();
 
-		void setLastTarget(Optional<Target> lastTarget);
+		void setDoneTargets(List<Target> lastTarget);
 
 		List<Target> getTargets();
 
@@ -123,7 +121,7 @@ public class RemoteFileInputPlugin
 		final String path = getPath(task);
 
 		final ImmutableList.Builder<Target> builder = ImmutableList.builder();
-		Target lastTarget = task.getLastTarget().orNull();
+		List<Target> doneTargets = task.getDoneTargets();
 		for (String host : hosts) {
 			String[] split = host.split(":");
 			final String targetHost = split[0];
@@ -133,7 +131,7 @@ public class RemoteFileInputPlugin
 			}
 			Target target = new Target(targetHost, targetPort, path);
 
-			if (lastTarget == null || target.compareTo(lastTarget) > 0) {
+			if (!doneTargets.contains(target)) {
 				if (task.getIgnoreNotFoundHosts()) {
 					try {
 						final boolean exists = exists(target, task);
@@ -206,13 +204,8 @@ public class RemoteFileInputPlugin
 		control.run(taskSource, taskCount);
 
 		List<Target> targets = new ArrayList<>(task.getTargets());
-		Collections.sort(targets);
 
-		if (targets.isEmpty()) {
-			return Exec.newConfigDiff();
-		}
-
-		return Exec.newConfigDiff().set("last_target", targets.get(targets.size() - 1));
+		return Exec.newConfigDiff().set("done_targets", targets);
 	}
 
 	@Override
@@ -270,7 +263,7 @@ public class RemoteFileInputPlugin
 		}
 	}
 
-	public static class Target implements Comparable<Target> {
+	public static class Target {
 		private final String host;
 		private final int port;
 		private final String path;
@@ -299,11 +292,18 @@ public class RemoteFileInputPlugin
 		}
 
 		@Override
-		public int compareTo(@Nullable Target other) {
-			if (other == null) {
-				throw new NullPointerException();
-			}
-			return this.toString().compareTo(other.toString());
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			Target target = (Target) o;
+			return port == target.port &&
+					Objects.equals(host, target.host) &&
+					Objects.equals(path, target.path);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(host, port, path);
 		}
 
 		@Override
