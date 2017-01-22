@@ -50,7 +50,7 @@ in:
 ```
 
 ## Note
-When this plugin run on Linux, task is sometimes blocked.  
+When this plugin run on Linux, a task might be blocked.  
 The cause is java.security.SecureRandom. Please try one of the followings.
 
 ### set JVM_OPTION "-Djava.security.egd"
