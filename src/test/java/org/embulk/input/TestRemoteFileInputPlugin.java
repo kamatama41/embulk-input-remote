@@ -202,7 +202,7 @@ public class TestRemoteFileInputPlugin {
         }
     }
 
-    static void startContainer(String containerId) {
+    private static void startContainer(String containerId) {
         if (!isRunning(containerId)) {
             dockerClient.startContainerCmd(containerId).exec();
         }
