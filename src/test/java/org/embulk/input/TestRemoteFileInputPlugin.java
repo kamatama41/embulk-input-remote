@@ -130,7 +130,7 @@ public class TestRemoteFileInputPlugin {
             // Stop host2 temporarily
             stopContainer(CONTAINER_ID_HOST2);
 
-            // Run (but failed)
+            // Run (but will fail)
             EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
 
             assertThat(resumableResult.isSuccessful(), is(false));
