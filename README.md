@@ -71,6 +71,18 @@ securerandom.source=file:/dev/./urandom # after
 
 http://stackoverflow.com/questions/137212/how-to-solve-performance-problem-with-java-securerandom
 
+## Development on local machine
+- Install Docker and then we can create SSH-able containers
+```sh
+$ ssh-keygen -t ecdsa -f ./id_rsa_test -N ''
+$ docker-compose up -d
+$ docker-compose ps
+          Name                 Command       State           Ports         
+--------------------------------------------------------------------------
+embulkinputremote_host1_1   /entrypoint.sh   Up      0.0.0.0:10022->22/tcp 
+embulkinputremote_host2_1   /entrypoint.sh   Up      0.0.0.0:10023->22/tcp 
+```
+
 ## Build
 
 ```
