@@ -1,0 +1,16 @@
+version: '2'
+services:
+  host1:
+    image: "sickp/alpine-sshd:7.2"
+    ports:
+     - "10022:22"
+    volumes:
+     - ./src/test/resources/input/host1/:/mount
+     - ./id_rsa_test.pub:/root/.ssh/authorized_keys
+  host2:
+    image: "sickp/alpine-sshd:7.2"
+    ports:
+     - "10023:22"
+    volumes:
+     - ./src/test/resources/input/host2/:/mount
+     - ./id_rsa_test.pub:/root/.ssh/authorized_keys

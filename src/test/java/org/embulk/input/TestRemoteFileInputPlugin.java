@@ -28,8 +28,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class TestRemoteFileInputPlugin {
-    private static final String CONTAINER_ID_HOST1 = "test_sshd1";
-    private static final String CONTAINER_ID_HOST2 = "test_sshd2";
+    private static final String CONTAINER_ID_HOST1 = "embulkinputremote_host1_1";
+    private static final String CONTAINER_ID_HOST2 = "embulkinputremote_host2_1";
     private static final DockerClient dockerClient = DockerClientBuilder.getInstance().build();
 
     @Rule
