@@ -84,7 +84,7 @@ public class TestRemoteFileInputPlugin {
         final ConfigSource config = baseConfig().merge(multiHosts);
 
         // Run
-        TestingEmbulk.RunResult runResult = embulk.runInput(config);
+        embulk.runInput(config);
         assertValues(
                 values(1L, "user1"),
                 values(2L, "user2")
