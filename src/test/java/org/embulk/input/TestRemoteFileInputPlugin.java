@@ -92,6 +92,20 @@ public class TestRemoteFileInputPlugin {
     }
 
     @Test
+    public void loadAllFilesInDirectory() throws Exception
+    {
+        final ConfigSource multiHosts = newConfig()
+                .set("path", "/mount");
+        final ConfigSource config = baseConfig().merge(multiHosts);
+
+        embulk.runInput(config);
+        assertValues(
+                values(1L, "user1"),
+                values(1L, "command_user1")
+        );
+    }
+
+    @Test
     public void testDefaultPort() throws Exception
     {
         final ConfigSource defaultPort = newConfig()
