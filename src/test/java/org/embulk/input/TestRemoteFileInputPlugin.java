@@ -151,6 +151,27 @@ public class TestRemoteFileInputPlugin {
                     values(4L, "kamatama44")
             );
         }
+
+        @Test
+        public void testIgnoreNotFoundHosts() throws Exception
+        {
+            final ConfigSource ignoreNotFoundHosts = newConfig()
+                    .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
+                    .set("ignore_not_found_hosts", true);
+            final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
+
+            // Stop host2
+            stopContainer(CONTAINER_ID_HOST2);
+
+            // Run (host2 will be ignored)
+            EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
+
+            assertThat(resumableResult.isSuccessful(), is(true));
+            assertValues(
+                    values(1L, "kamatama41"),
+                    values(2L, "kamatama42")
+            );
+        }
     }
 
     public abstract static class TestBase {
