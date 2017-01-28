@@ -6,7 +6,6 @@ import org.embulk.config.ConfigSource;
 import org.embulk.exec.ResumeState;
 import org.embulk.spi.OutputPlugin;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 
 public class MyTestingEmbulk extends TestingEmbulk {
@@ -30,11 +29,11 @@ public class MyTestingEmbulk extends TestingEmbulk {
         this.superEmbed = extractSuperField("embed");
     }
 
-    public RunResult runInput(ConfigSource inConfig) throws IOException {
+    public RunResult runInput(ConfigSource inConfig) {
         return runInput(inConfig, (ConfigDiff) null);
     }
 
-    public RunResult runInput(ConfigSource inConfig, ConfigDiff confDiff) throws IOException {
+    public RunResult runInput(ConfigSource inConfig, ConfigDiff confDiff) {
         MemoryOutputPlugin.clearRecords();
         return new RunConfig()
                 .inConfig(inConfig)
@@ -44,11 +43,11 @@ public class MyTestingEmbulk extends TestingEmbulk {
                 .run();
     }
 
-    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig) throws IOException {
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig) {
         return resume(inConfig, null);
     }
 
-    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig, ResumeState resumeState) throws IOException {
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig, ResumeState resumeState) {
         MemoryOutputPlugin.clearRecords();
         return new RunConfig()
                 .inConfig(inConfig)
