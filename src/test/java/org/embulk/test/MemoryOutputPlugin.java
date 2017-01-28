@@ -16,7 +16,14 @@ import org.embulk.spi.TransactionalPageOutput;
 import org.embulk.spi.util.Pages;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class MemoryOutputPlugin implements OutputPlugin
 {
@@ -139,5 +146,21 @@ public class MemoryOutputPlugin implements OutputPlugin
         {
             return columns;
         }
+    }
+
+    public static void assertValues(List... valuesList) {
+        Set<List> actual = new HashSet<>();
+        for (Record record : getRecords()) {
+            actual.add(record.getValues());
+        }
+
+        Set<List> expected = new HashSet<>();
+        Collections.addAll(expected, valuesList);
+
+        assertThat(actual, is(expected));
+    }
+
+    public static List values(Object... values) {
+        return Arrays.asList(values);
     }
 }

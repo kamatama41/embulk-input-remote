@@ -6,7 +6,6 @@ import org.embulk.config.ConfigSource;
 import org.embulk.exec.ResumeState;
 import org.embulk.spi.OutputPlugin;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 
 public class MyTestingEmbulk extends TestingEmbulk {
@@ -30,53 +29,32 @@ public class MyTestingEmbulk extends TestingEmbulk {
         this.superEmbed = extractSuperField("embed");
     }
 
-    public RunResult runInput(ConfigSource inConfig) throws IOException {
+    public RunResult runInput(ConfigSource inConfig) {
         return runInput(inConfig, (ConfigDiff) null);
     }
 
-    public RunResult runInput(ConfigSource inConfig, ConfigDiff confDiff) throws IOException {
-        ConfigSource execConfig = newConfig()
-                .set("min_output_tasks", 1);
-
-        ConfigSource outConfig = newConfig()
-                .set("type", "memory");
-
-        ConfigSource config = newConfig()
-                .set("exec", execConfig)
-                .set("in", inConfig)
-                .set("out", outConfig);
-
-        // embed.run returns TestingBulkLoader.TestingExecutionResult because
+    public RunResult runInput(ConfigSource inConfig, ConfigDiff confDiff) {
         MemoryOutputPlugin.clearRecords();
-        if (confDiff == null) {
-            return (RunResult) superEmbed.run(config);
-        } else {
-            return (RunResult) superEmbed.run(config.merge(confDiff));
-        }
+        return new RunConfig()
+                .inConfig(inConfig)
+                .configDiff(confDiff)
+                .execConfig(newConfig().set("min_output_tasks", 1))
+                .outConfig(newConfig().set("type", "memory"))
+                .run();
     }
 
-    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig) throws IOException {
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig) {
         return resume(inConfig, null);
     }
 
-    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig, ResumeState resumeState) throws IOException {
-        ConfigSource execConfig = newConfig()
-                .set("min_output_tasks", 1);
-
-        ConfigSource outConfig = newConfig()
-                .set("type", "memory");
-
-        ConfigSource config = newConfig()
-                .set("exec", execConfig)
-                .set("in", inConfig)
-                .set("out", outConfig);
-
+    public EmbulkEmbed.ResumableResult resume(ConfigSource inConfig, ResumeState resumeState) {
         MemoryOutputPlugin.clearRecords();
-        if (resumeState == null) {
-            return superEmbed.runResumable(config);
-        } else {
-            return superEmbed.new ResumeStateAction(config, resumeState).resume();
-        }
+        return new RunConfig()
+                .inConfig(inConfig)
+                .resumeState(resumeState)
+                .execConfig(newConfig().set("min_output_tasks", 1))
+                .outConfig(newConfig().set("type", "memory"))
+                .resume();
     }
 
     @SuppressWarnings("unchecked")
@@ -87,6 +65,66 @@ public class MyTestingEmbulk extends TestingEmbulk {
             return (T) field.get(this);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private class RunConfig {
+        private ConfigSource inConfig;
+        private ConfigSource execConfig;
+        private ConfigSource outConfig;
+        private ConfigDiff configDiff;
+        private ResumeState resumeState;
+
+        private RunConfig() {}
+
+        RunConfig inConfig(ConfigSource inConfig) {
+            this.inConfig = inConfig;
+            return this;
+        }
+
+        RunConfig execConfig(ConfigSource execConfig) {
+            this.execConfig = execConfig;
+            return this;
+        }
+
+        RunConfig outConfig(ConfigSource outConfig) {
+            this.outConfig = outConfig;
+            return this;
+        }
+
+        RunConfig configDiff(ConfigDiff configDiff) {
+            this.configDiff = configDiff;
+            return this;
+        }
+
+        RunConfig resumeState(ResumeState resumeState) {
+            this.resumeState = resumeState;
+            return this;
+        }
+
+        RunResult run() {
+            ConfigSource config = newConfig()
+                    .set("exec", execConfig)
+                    .set("in", inConfig)
+                    .set("out", outConfig);
+            // embed.run returns TestingBulkLoader.TestingExecutionResult because
+            if (configDiff == null) {
+                return (RunResult) superEmbed.run(config);
+            } else {
+                return (RunResult) superEmbed.run(config.merge(configDiff));
+            }
+        }
+
+        EmbulkEmbed.ResumableResult resume() {
+            ConfigSource config = newConfig()
+                    .set("exec", execConfig)
+                    .set("in", inConfig)
+                    .set("out", outConfig);
+            if (resumeState == null) {
+                return superEmbed.runResumable(config);
+            } else {
+                return superEmbed.new ResumeStateAction(config, resumeState).resume();
+            }
         }
     }
 }

@@ -8,7 +8,6 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import org.embulk.EmbulkEmbed;
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.InputPlugin;
-import org.embulk.test.MemoryOutputPlugin;
 import org.embulk.test.MyEmbulkTests;
 import org.embulk.test.MyTestingEmbulk;
 import org.embulk.test.TestingEmbulk;
@@ -20,10 +19,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import static org.embulk.test.MemoryOutputPlugin.assertValues;
+import static org.embulk.test.MemoryOutputPlugin.values;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -94,9 +93,9 @@ public class TestRemoteFileInputPlugin {
     @Test
     public void loadAllFilesInDirectory() throws Exception
     {
-        final ConfigSource multiHosts = newConfig()
+        final ConfigSource directoryPath = newConfig()
                 .set("path", "/mount");
-        final ConfigSource config = baseConfig().merge(multiHosts);
+        final ConfigSource config = baseConfig().merge(directoryPath);
 
         embulk.runInput(config);
         assertValues(
@@ -199,28 +198,16 @@ public class TestRemoteFileInputPlugin {
         );
     }
 
+    //////////////////////////////
+    // Helpers
+    //////////////////////////////
+
     private ConfigSource baseConfig() {
         return MyEmbulkTests.configFromResource("yaml/base.yml");
     }
 
     private ConfigSource newConfig() {
         return embulk.newConfig();
-    }
-
-    private void assertValues(List... valuesList) {
-        Set<List> actual = new HashSet<>();
-        for (MemoryOutputPlugin.Record record : MemoryOutputPlugin.getRecords()) {
-            actual.add(record.getValues());
-        }
-
-        Set<List> expected = new HashSet<>();
-        Collections.addAll(expected, valuesList);
-
-        assertThat(actual, is(expected));
-    }
-
-    private List values(Object... values) {
-        return Arrays.asList(values);
     }
 
     //////////////////////////////
