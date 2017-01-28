@@ -199,6 +199,10 @@ public class TestRemoteFileInputPlugin {
         );
     }
 
+    //////////////////////////////
+    // Helpers
+    //////////////////////////////
+
     private ConfigSource baseConfig() {
         return MyEmbulkTests.configFromResource("yaml/base.yml");
     }
