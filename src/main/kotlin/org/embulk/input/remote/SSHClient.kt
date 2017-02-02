@@ -1,116 +1,77 @@
-package org.embulk.input.remote;
+package org.embulk.input.remote
 
-import net.schmizz.sshj.DefaultConfig;
-import net.schmizz.sshj.connection.channel.direct.Session;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.xfer.InMemoryDestFile;
-import net.schmizz.sshj.xfer.LocalDestFile;
-import org.embulk.input.RemoteFileInputPlugin;
+import net.schmizz.sshj.DefaultConfig
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier
+import net.schmizz.sshj.xfer.InMemoryDestFile
+import net.schmizz.sshj.xfer.LocalDestFile
+import org.embulk.input.RemoteFileInputPlugin
+import java.io.Closeable
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.concurrent.TimeUnit
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.TimeUnit;
+fun connect(
+        host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig
+): SSHClient {
+    val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
+    client.connectToHost(host, port, authConfig)
+    return client
+}
 
-public class SSHClient implements Closeable {
+class SSHClient internal constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
+    internal fun connectToHost(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig) {
+        if (authConfig.getSkipHostKeyVerification()) {
+            client.addHostKeyVerifier(PromiscuousVerifier())
+        }
+        client.loadKnownHosts()
+        client.connect(host, port)
 
-	private final net.schmizz.sshj.SSHClient client;
+        val type = authConfig.getType()
+        val user = authConfig.getUser().or(System.getProperty("user.name"))
 
-	public static SSHClient connect(
-			String host, int port, RemoteFileInputPlugin.AuthConfig authConfig
-	) throws IOException {
+        if ("password" == type) {
+            if (authConfig.getPassword().isPresent) {
+                client.authPassword(user, authConfig.getPassword().get())
+            } else {
+                throw IllegalStateException("Password is not set.")
+            }
+        } else if ("public_key" == type) {
+            if (authConfig.getKeyPath().isPresent) {
+                client.authPublickey(user, authConfig.getKeyPath().get())
+            } else {
+                client.authPublickey(user)
+            }
+        } else {
+            throw UnsupportedOperationException("Unsupported auth type : " + type)
+        }
+    }
 
-		SSHClient client =  new SSHClient(new net.schmizz.sshj.SSHClient(new DefaultConfig()));
-		client.connectToHost(host, port, authConfig);
-		return client;
-	}
+    fun execCommand(command: String, timeoutSecond: Int): CommandResult {
+        client.startSession().use { session ->
+            val cmd = session.exec(command)
+            cmd.join(timeoutSecond.toLong(), TimeUnit.SECONDS)
+            return CommandResult(cmd.exitStatus!!, cmd.inputStream)
+        }
+    }
 
-	private SSHClient(net.schmizz.sshj.SSHClient client) {
-		this.client = client;
-	}
+    fun scpDownload(path: String, stream: OutputStream) {
+        client.useCompression()
+        client.newSCPFileTransfer().download(path, InMemoryDestFileImpl(stream))
+    }
 
-	private void connectToHost(String host, int port, RemoteFileInputPlugin.AuthConfig authConfig) throws IOException {
-		if (authConfig.getSkipHostKeyVerification()) {
-			client.addHostKeyVerifier(new PromiscuousVerifier());
-		}
-		client.loadKnownHosts();
-		client.connect(host, port);
+    override fun close() {
+        client.close()
+    }
 
-		final String type = authConfig.getType();
-		final String user = authConfig.getUser().or(System.getProperty("user.name"));
+    private class InMemoryDestFileImpl(private val outputStream: OutputStream) : InMemoryDestFile() {
+        override fun getOutputStream(): OutputStream {
+            return outputStream
+        }
 
-		if ("password".equals(type)) {
-			if (authConfig.getPassword().isPresent()) {
-				client.authPassword(user, authConfig.getPassword().get());
-			} else {
-				throw new IllegalStateException("Password is not set.");
-			}
-		} else if ("public_key".equals(type)) {
-			if (authConfig.getKeyPath().isPresent()) {
-				client.authPublickey(user, authConfig.getKeyPath().get());
-			} else {
-				client.authPublickey(user);
-			}
-		} else {
-			throw new UnsupportedOperationException("Unsupported auth type : " + type);
-		}
-	}
+        override fun getTargetDirectory(dirname: String?): LocalDestFile {
+            return this
+        }
+    }
 
-	public CommandResult execCommand(String command, int timeoutSecond) throws IOException {
-		try (final Session session = client.startSession()) {
-			final Session.Command cmd = session.exec(command);
-			cmd.join(timeoutSecond, TimeUnit.SECONDS);
-			return new CommandResult(cmd.getExitStatus(), cmd.getInputStream());
-		}
-	}
-
-	public void scpDownload(String path, OutputStream stream) throws IOException {
-		client.useCompression();
-		client.newSCPFileTransfer().download(path, new InMemoryDestFileImpl(stream));
-	}
-
-	private static class InMemoryDestFileImpl extends InMemoryDestFile {
-
-		private OutputStream outputStream;
-
-		public InMemoryDestFileImpl(OutputStream outputStream) {
-			this.outputStream = outputStream;
-		}
-
-		@Override
-		public OutputStream getOutputStream() throws IOException {
-			return outputStream;
-		}
-
-		@Override
-		public LocalDestFile getTargetDirectory(String dirname) throws IOException {
-			return this;
-		}
-	}
-
-	@Override
-	public void close() throws IOException {
-		if (client != null) {
-			client.close();
-		}
-	}
-
-	public static class CommandResult {
-		int status;
-		InputStream stdout;
-
-		private CommandResult(int status, InputStream stdout) {
-			this.status = status;
-			this.stdout = stdout;
-		}
-
-		public int getStatus() {
-			return status;
-		}
-
-		public InputStream getStdout() {
-			return stdout;
-		}
-	}
+    data class CommandResult(val status: Int, val stdout: InputStream)
 }

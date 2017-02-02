@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableList
 import org.embulk.config.*
-import org.embulk.input.remote.SSHClient
+import org.embulk.input.remote.connect
 import org.embulk.spi.BufferAllocator
 import org.embulk.spi.Exec
 import org.embulk.spi.FileInputPlugin
@@ -211,7 +211,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun exists(target: Target, task: PluginTask): Boolean {
-        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        connect(target.host, target.port, task.getAuthConfig()).use { client ->
             val checkCmd = "ls " + target.path    // TODO: windows
             val timeout = 5/* second */
             val commandResult = client.execCommand(checkCmd, timeout)
@@ -226,7 +226,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun download(target: Target, task: PluginTask): InputStream {
-        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        connect(target.host, target.port, task.getAuthConfig()).use { client ->
             val stream = ByteArrayOutputStream()
             client.scpDownload(target.path, stream)
             return ByteArrayInputStream(stream.toByteArray())
