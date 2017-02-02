@@ -1,314 +1,277 @@
-package org.embulk.input;
+package org.embulk.input
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.google.common.base.Optional
+import com.google.common.collect.ImmutableList
+import org.embulk.config.*
+import org.embulk.input.remote.SSHClient
+import org.embulk.spi.BufferAllocator
+import org.embulk.spi.Exec
+import org.embulk.spi.FileInputPlugin
+import org.embulk.spi.TransactionalFileInput
+import org.embulk.spi.util.InputStreamFileInput
+import org.embulk.spi.util.InputStreamTransactionalFileInput
+import java.io.*
+import java.util.*
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import org.embulk.config.Config;
-import org.embulk.config.ConfigDefault;
-import org.embulk.config.ConfigDiff;
-import org.embulk.config.ConfigInject;
-import org.embulk.config.ConfigSource;
-import org.embulk.config.Task;
-import org.embulk.config.TaskReport;
-import org.embulk.config.TaskSource;
-import org.embulk.input.remote.SSHClient;
-import org.embulk.spi.BufferAllocator;
-import org.embulk.spi.Exec;
-import org.embulk.spi.FileInputPlugin;
-import org.embulk.spi.TransactionalFileInput;
-import org.embulk.spi.util.InputStreamTransactionalFileInput;
-import org.slf4j.Logger;
-
-public class RemoteFileInputPlugin
-		implements FileInputPlugin {
-	public interface PluginTask
-			extends Task {
+class RemoteFileInputPlugin : FileInputPlugin {
+	interface PluginTask : Task {
 		@Config("hosts")
 		@ConfigDefault("[]")
-		List<String> getHosts();
+		fun getHosts(): List<String>
 
 		@Config("hosts_command")
 		@ConfigDefault("null")
-		Optional<String> getHostsCommand();
+		fun getHostsCommand(): Optional<String>
 
 		@Config("hosts_separator")
 		@ConfigDefault("\" \"")
-		String getHostsSeparator();
+		fun getHostsSeparator(): String
 
 		@Config("default_port")
 		@ConfigDefault("22")
-		int getDefaultPort();
+		fun getDefaultPort(): Int
 
 		@Config("path")
 		@ConfigDefault("\"\"")
-		String getPath();
+		fun getPath(): String
 
 		@Config("path_command")
 		@ConfigDefault("null")
-		Optional<String> getPathCommand();
+		fun getPathCommand(): Optional<String>
 
 		@Config("auth")
-		AuthConfig getAuthConfig();
+		fun getAuthConfig(): AuthConfig
 
 		@Config("ignore_not_found_hosts")
 		@ConfigDefault("false")
-		boolean getIgnoreNotFoundHosts();
+		fun getIgnoreNotFoundHosts(): Boolean
 
 		@Config("done_targets")
 		@ConfigDefault("[]")
-		List<Target> getDoneTargets();
+		fun getDoneTargets(): List<Target>
 
-		void setDoneTargets(List<Target> lastTarget);
+		fun setDoneTargets(lastTarget: List<Target>)
 
-		List<Target> getTargets();
+		fun getTargets(): List<Target>
 
-		void setTargets(List<Target> targets);
+		fun setTargets(targets: List<Target>)
 
 		@ConfigInject
-		BufferAllocator getBufferAllocator();
+		fun getBufferAllocator(): BufferAllocator
 	}
 
-	public interface AuthConfig extends Task {
+	interface AuthConfig : Task {
 		@Config("type")
 		@ConfigDefault("\"public_key\"")
-		String getType();
+		fun getType(): String
 
 		@Config("user")
 		@ConfigDefault("null")
-		Optional<String> getUser();
+		fun getUser(): Optional<String>
 
 		@Config("key_path")
 		@ConfigDefault("null")
-		Optional<String> getKeyPath();
+		fun getKeyPath(): Optional<String>
 
 		@Config("password")
 		@ConfigDefault("null")
-		Optional<String> getPassword();
+		fun getPassword(): Optional<String>
 
 		@Config("skip_host_key_verification")
 		@ConfigDefault("false")
-		boolean getSkipHostKeyVerification();
+		fun getSkipHostKeyVerification(): Boolean
 	}
 
-	private final Logger log = Exec.getLogger(getClass());
+	private val log = Exec.getLogger(javaClass)
 
-	@Override
-	public ConfigDiff transaction(ConfigSource config, FileInputPlugin.Control control) {
-		PluginTask task = config.loadConfig(PluginTask.class);
-		List<Target> targets = listTargets(task);
-		log.info("Loading targets {}", targets);
-		task.setTargets(targets);
+	override fun transaction(config: ConfigSource, control: FileInputPlugin.Control): ConfigDiff {
+		val task = config.loadConfig(PluginTask::class.java)
+		val targets = listTargets(task)
+		log.info("Loading targets {}", targets)
+		task.setTargets(targets)
 
 		// number of processors is same with number of targets
-		int taskCount = targets.size();
-		return resume(task.dump(), taskCount, control);
+		val taskCount = targets.size
+		return resume(task.dump(), taskCount, control)
 	}
 
-	private List<Target> listTargets(PluginTask task) {
-		final List<String> hosts = listHosts(task);
-		final String path = getPath(task);
+	override fun resume(taskSource: TaskSource, taskCount: Int, control: FileInputPlugin.Control): ConfigDiff {
+		val task = taskSource.loadTask(PluginTask::class.java)
 
-		final ImmutableList.Builder<Target> builder = ImmutableList.builder();
-		List<Target> doneTargets = task.getDoneTargets();
-		for (String host : hosts) {
-			String[] split = host.split(":");
-			final String targetHost = split[0];
-			int targetPort = task.getDefaultPort();
-			if (split.length > 1) {
-				targetPort = Integer.valueOf(split[1]);
+		control.run(taskSource, taskCount)
+
+		val targets = ArrayList<Target>(task.getTargets())
+
+		return Exec.newConfigDiff().set("done_targets", targets)
+	}
+
+	override fun cleanup(taskSource: TaskSource?, taskCount: Int, successTaskReports: MutableList<TaskReport>?) {
+	}
+
+	override fun open(taskSource: TaskSource, taskIndex: Int): TransactionalFileInput {
+		val task = taskSource.loadTask(PluginTask::class.java)
+		val target = task.getTargets()[taskIndex]
+
+		return object : InputStreamTransactionalFileInput(
+				task.getBufferAllocator(),
+				InputStreamFileInput.Opener { download(target, task) }
+		) {
+			override fun abort() {
 			}
-			Target target = new Target(targetHost, targetPort, path);
+
+			override fun commit(): TaskReport {
+				return Exec.newTaskReport()
+			}
+		}
+
+	}
+
+
+	private fun listTargets(task: PluginTask): List<Target> {
+		val hosts = listHosts(task)
+		val path = getPath(task)
+
+		val builder = ImmutableList.builder<Target>()
+		val doneTargets = task.getDoneTargets()
+		for (host in hosts) {
+			val split = host.split(":".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()
+			val targetHost = split[0]
+			var targetPort = task.getDefaultPort()
+			if (split.size > 1) {
+				targetPort = Integer.valueOf(split[1])!!
+			}
+			val target = Target(targetHost, targetPort, path)
 
 			if (!doneTargets.contains(target)) {
 				if (task.getIgnoreNotFoundHosts()) {
 					try {
-						final boolean exists = exists(target, task);
+						val exists = exists(target, task)
 						if (!exists) {
-							continue;
+							continue
 						}
-					} catch (IOException e) {
-						log.warn("failed to check the file exists. " + target.toString(), e);
-						continue;
+					} catch (e: IOException) {
+						log.warn("failed to check the file exists. " + target.toString(), e)
+						continue
 					}
+
 				}
-				builder.add(target);
+				builder.add(target)
 			}
 		}
-		return builder.build();
+		return builder.build()
 	}
 
-	private List<String> listHosts(PluginTask task) {
-		final String hostsCommand = task.getHostsCommand().orNull();
+	private fun listHosts(task: PluginTask): List<String> {
+		val hostsCommand = task.getHostsCommand().orNull()
 		if (hostsCommand != null) {
-			final String stdout = execCommand(hostsCommand).trim();
-			return Arrays.asList(stdout.split(task.getHostsSeparator()));
+			val stdout = execCommand(hostsCommand).trim({ it <= ' ' })
+			return Arrays.asList<String>(*stdout.split(task.getHostsSeparator().toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray())
 		} else {
-			return task.getHosts();
+			return task.getHosts()
 		}
 	}
 
-	private String getPath(PluginTask task) {
-		final String pathCommand = task.getPathCommand().orNull();
+	private fun getPath(task: PluginTask): String {
+		val pathCommand = task.getPathCommand().orNull()
 		if (pathCommand != null) {
-			return execCommand(pathCommand).trim();
+			return execCommand(pathCommand).trim({ it <= ' ' })
 		} else {
-			return task.getPath();
+			return task.getPath()
 		}
 	}
 
-	private String execCommand(String command) {
-		ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);    // TODO: windows
-		log.info("Running command {}", command);
+	private fun execCommand(command: String): String {
+		val pb = ProcessBuilder("sh", "-c", command)    // TODO: windows
+		log.info("Running command {}", command)
 		try {
-			final Process process = pb.start();
-			try (InputStream stream = process.getInputStream();
-				 BufferedReader brStdout = new BufferedReader(new InputStreamReader(stream))
-			) {
-				String line;
-				StringBuilder stdout = new StringBuilder();
-				while ((line = brStdout.readLine()) != null) {
-					stdout.append(line);
-				}
-
-				final int code = process.waitFor();
-				if (code != 0) {
-					throw new IOException(String.format(
-							"Command finished with non-zero exit code. Exit code is %d.", code));
-				}
-
-				return stdout.toString();
-			}
-		} catch (IOException | InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public ConfigDiff resume(TaskSource taskSource,
-							 int taskCount,
-							 FileInputPlugin.Control control) {
-		PluginTask task = taskSource.loadTask(PluginTask.class);
-
-		control.run(taskSource, taskCount);
-
-		List<Target> targets = new ArrayList<>(task.getTargets());
-
-		return Exec.newConfigDiff().set("done_targets", targets);
-	}
-
-	@Override
-	public void cleanup(TaskSource taskSource,
-						int taskCount,
-						List<TaskReport> successTaskReports) {
-	}
-
-	@Override
-	public TransactionalFileInput open(TaskSource taskSource, int taskIndex) {
-		final PluginTask task = taskSource.loadTask(PluginTask.class);
-		final Target target = task.getTargets().get(taskIndex);
-
-		return new InputStreamTransactionalFileInput(
-				task.getBufferAllocator(),
-				new InputStreamTransactionalFileInput.Opener() {
-					@Override
-					public InputStream open() throws IOException {
-						return download(target, task);
+			val process = pb.start()
+			process.inputStream.use { stream ->
+				BufferedReader(InputStreamReader(stream)).use { brStdout ->
+					val stdout = StringBuilder()
+					for (line in brStdout.readLines()) {
+						stdout.append(line)
 					}
+
+					val code = process.waitFor()
+					if (code != 0) {
+						throw IOException(String.format(
+								"Command finished with non-zero exit code. Exit code is %d.", code))
+					}
+
+					return stdout.toString()
 				}
-		) {
-			@Override
-			public void abort() {
-
 			}
-
-			@Override
-			public TaskReport commit() {
-				return Exec.newTaskReport();
-			}
-		};
+		} catch (e: IOException) {
+			throw RuntimeException(e)
+		} catch (e: InterruptedException) {
+			throw RuntimeException(e)
+		}
 	}
 
-	private boolean exists(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = SSHClient.connect(target.getHost(), target.getPort(), task.getAuthConfig())) {
-			final String checkCmd = "ls " + target.getPath();    // TODO: windows
-			final int timeout = 5/* second */;
-			final SSHClient.CommandResult commandResult = client.execCommand(checkCmd, timeout);
+	private fun exists(target: Target, task: PluginTask): Boolean {
+		SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+			val checkCmd = "ls " + target.path    // TODO: windows
+			val timeout = 5/* second */
+			val commandResult = client.execCommand(checkCmd, timeout)
 
-			if(commandResult.getStatus() != 0) {
-				log.warn("Remote file not found. {}", target.toString());
-				return false;
+			if (commandResult.status != 0) {
+				log.warn("Remote file not found. {}", target.toString())
+				return false
 			} else {
-				return true;
+				return true
 			}
 		}
 	}
 
-	private InputStream download(Target target, PluginTask task) throws IOException {
-		try (SSHClient client = SSHClient.connect(target.getHost(), target.getPort(), task.getAuthConfig())) {
-			final ByteArrayOutputStream stream = new ByteArrayOutputStream();
-			client.scpDownload(target.getPath(), stream);
-			return new ByteArrayInputStream(stream.toByteArray());
+	private fun download(target: Target, task: PluginTask): InputStream {
+		SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+			val stream = ByteArrayOutputStream()
+			client.scpDownload(target.path, stream)
+			return ByteArrayInputStream(stream.toByteArray())
 		}
 	}
 
-	public static class Target {
-		private final String host;
-		private final int port;
-		private final String path;
+	class Target {
+		val host: String
+		val port: Int
+		val path: String
 
 		@JsonCreator
-		public Target(
-				@JsonProperty("host") String host,
-				@JsonProperty("port") int port,
-				@JsonProperty("path") String path
-		) {
-			this.host = host;
-			this.port = port;
-			this.path = path;
+		constructor(
+				@JsonProperty("host") host: String,
+				@JsonProperty("port") port: Int,
+				@JsonProperty("path") path: String)
+		{
+			this.host = host
+			this.port = port
+			this.path = path
 		}
 
-		public String getHost() {
-			return host;
+		override fun equals(other: Any?): Boolean {
+			if (this === other) return true
+			if (other?.javaClass != javaClass) return false
+
+			other as Target
+
+			if (host != other.host) return false
+			if (port != other.port) return false
+			if (path != other.path) return false
+
+			return true
 		}
 
-		public int getPort() {
-			return port;
+		override fun hashCode(): Int {
+			var result = host.hashCode()
+			result = 31 * result + port
+			result = 31 * result + path.hashCode()
+			return result
 		}
 
-		public String getPath() {
-			return path;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) return true;
-			if (o == null || getClass() != o.getClass()) return false;
-			Target target = (Target) o;
-			return port == target.port &&
-					Objects.equals(host, target.host) &&
-					Objects.equals(path, target.path);
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(host, port, path);
-		}
-
-		@Override
-		public String toString() {
-			return host + ":" + port + ":" + path;
+		override fun toString(): String {
+			return "$host:$port:$path"
 		}
 	}
+
 }
