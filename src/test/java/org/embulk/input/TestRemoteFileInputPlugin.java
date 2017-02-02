@@ -8,12 +8,10 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import org.embulk.EmbulkEmbed;
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.InputPlugin;
+import org.embulk.test.EmbulkPluginTest;
 import org.embulk.test.ExtendedEmbulkTests;
-import org.embulk.test.ExtendedTestingEmbulk;
 import org.embulk.test.TestingEmbulk;
-import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -26,19 +24,16 @@ import static org.embulk.test.Utils.record;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class TestRemoteFileInputPlugin {
+public class TestRemoteFileInputPlugin extends EmbulkPluginTest {
     private static final String CONTAINER_ID_HOST1 = "embulkinputremote_host1_1";
     private static final String CONTAINER_ID_HOST2 = "embulkinputremote_host2_1";
     private static final DockerClient dockerClient = DockerClientBuilder.getInstance().build();
 
-    @Rule
-    public ExtendedTestingEmbulk embulk = (ExtendedTestingEmbulk) ExtendedTestingEmbulk
-            .builder()
-            .registerPlugin(InputPlugin.class, "remote", RemoteFileInputPlugin.class)
-            .build();
+    @Override
+    protected void setup(TestingEmbulk.Builder builder) {
+        builder.registerPlugin(InputPlugin.class, "remote", RemoteFileInputPlugin.class);
 
-    @Before
-    public void prepare() {
+        // Setup docker container
         startContainer(CONTAINER_ID_HOST1);
         startContainer(CONTAINER_ID_HOST2);
 
@@ -53,7 +48,7 @@ public class TestRemoteFileInputPlugin {
     @Test
     public void loadFromRemote() throws Exception
     {
-        embulk.runInput(baseConfig());
+        runInput(baseConfig());
         assertRecords(record(1, "user1"));
     }
 
@@ -70,7 +65,7 @@ public class TestRemoteFileInputPlugin {
                 .set("type", "public_key")
                 .set("key_path", keyPath)
         );
-        embulk.runInput(baseConfig().merge(publicKeyAuth));
+        runInput(baseConfig().merge(publicKeyAuth));
 
         assertRecords(record(1, "user1"));
     }
@@ -83,7 +78,7 @@ public class TestRemoteFileInputPlugin {
         final ConfigSource config = baseConfig().merge(multiHosts);
 
         // Run
-        embulk.runInput(config);
+        runInput(config);
         assertRecords(
                 record(1, "user1"),
                 record(2, "user2")
@@ -97,7 +92,7 @@ public class TestRemoteFileInputPlugin {
                 .set("path", "/mount");
         final ConfigSource config = baseConfig().merge(directoryPath);
 
-        embulk.runInput(config);
+        runInput(config);
         assertRecords(
                 record(1L, "user1"),
                 record(1L, "command_user1")
@@ -111,7 +106,7 @@ public class TestRemoteFileInputPlugin {
                 .set("hosts", Collections.singletonList("localhost"))
                 .set("default_port", 10022);
 
-        embulk.runInput(baseConfig().merge(defaultPort));
+        runInput(baseConfig().merge(defaultPort));
 
         assertRecords(record(1L, "user1"));
     }
@@ -124,7 +119,7 @@ public class TestRemoteFileInputPlugin {
         ConfigSource config = baseConfig().merge(host2Config);
 
         // Run
-        TestingEmbulk.RunResult runResult = embulk.runInput(config);
+        TestingEmbulk.RunResult runResult = runInput(config);
         assertRecords(record(2, "user2"));
 
         // Re-run with additional host1
@@ -132,7 +127,7 @@ public class TestRemoteFileInputPlugin {
                 .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
         config = baseConfig().merge(multiHost);
 
-        embulk.runInput(config, runResult.getConfigDiff());
+        runInput(config, runResult.getConfigDiff());
 
         assertRecords(record(1, "user1"));
     }
@@ -148,7 +143,7 @@ public class TestRemoteFileInputPlugin {
         stopContainer(CONTAINER_ID_HOST2);
 
         // Run (but will fail)
-        EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
+        EmbulkEmbed.ResumableResult resumableResult = resume(config);
 
         assertThat(resumableResult.isSuccessful(), is(false));
         assertRecords(record(1, "user1"));
@@ -157,7 +152,7 @@ public class TestRemoteFileInputPlugin {
         startContainer(CONTAINER_ID_HOST2);
 
         // Resume
-        resumableResult = embulk.resume(config, resumableResult.getResumeState());
+        resumableResult = resume(config, resumableResult.getResumeState());
 
         assertThat(resumableResult.isSuccessful(), is(true));
         assertRecords(record(2, "user2"));
@@ -175,7 +170,7 @@ public class TestRemoteFileInputPlugin {
         stopContainer(CONTAINER_ID_HOST2);
 
         // Run (host2 will be ignored)
-        EmbulkEmbed.ResumableResult resumableResult = embulk.resume(config);
+        EmbulkEmbed.ResumableResult resumableResult = resume(config);
 
         assertThat(resumableResult.isSuccessful(), is(true));
         assertRecords(record(1, "user1"));
@@ -190,7 +185,7 @@ public class TestRemoteFileInputPlugin {
                 .set("path_command", "echo /mount/test_command.csv");
         final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
 
-        embulk.runInput(config);
+        runInput(config);
 
         assertRecords(
                 record(1, "command_user1"),
@@ -204,10 +199,6 @@ public class TestRemoteFileInputPlugin {
 
     private ConfigSource baseConfig() {
         return ExtendedEmbulkTests.configFromResource("yaml/base.yml");
-    }
-
-    private ConfigSource newConfig() {
-        return embulk.newConfig();
     }
 
     //////////////////////////////
