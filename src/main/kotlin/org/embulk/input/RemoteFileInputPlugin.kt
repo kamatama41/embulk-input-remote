@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.util.Arrays
 
 
 class RemoteFileInputPlugin : FileInputPlugin {
@@ -160,8 +159,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun listHosts(task: PluginTask): List<String> {
         val hostsCommand = task.getHostsCommand().orNull()
         if (hostsCommand != null) {
-            val stdout = execCommand(hostsCommand)
-            return Arrays.asList<String>(*stdout.split(task.getHostsSeparator().toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray())
+            return execCommand(hostsCommand).split(task.getHostsSeparator().toRegex())
         } else {
             return task.getHosts()
         }
