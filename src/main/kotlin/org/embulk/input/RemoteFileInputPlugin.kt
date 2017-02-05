@@ -143,14 +143,12 @@ class RemoteFileInputPlugin : FileInputPlugin {
         }.filter {
             !doneTargets.contains(it)
         }.filter {
-            !ignoreNotFoundHosts || {
-                try {
-                    exists(it, task)
-                } catch (e: IOException) {
-                    log.warn("failed to check the file exists. $it", e)
-                    false
-                }
-            }()
+            !ignoreNotFoundHosts || try {
+                exists(it, task)
+            } catch (e: IOException) {
+                log.warn("failed to check the file exists. $it", e)
+                false
+            }
         }
     }
 

@@ -12,10 +12,7 @@ import java.util.concurrent.TimeUnit
 
 class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
     companion object {
-        @JvmStatic
-        fun connect(
-                host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig
-        ): SSHClient {
+        fun connect(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig): SSHClient {
             val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
             client.connectToHost(host, port, authConfig)
             return client
