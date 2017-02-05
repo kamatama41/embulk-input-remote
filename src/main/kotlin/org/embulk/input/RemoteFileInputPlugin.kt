@@ -192,28 +192,22 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun execCommand(command: String): String {
         val pb = ProcessBuilder("sh", "-c", command)    // TODO: windows
         log.info("Running command {}", command)
-        try {
-            val process = pb.start()
-            process.inputStream.use { stream ->
-                BufferedReader(InputStreamReader(stream)).use { brStdout ->
-                    val stdout = StringBuilder()
-                    for (line in brStdout.readLines()) {
-                        stdout.append(line)
-                    }
-
-                    val code = process.waitFor()
-                    if (code != 0) {
-                        throw IOException(String.format(
-                                "Command finished with non-zero exit code. Exit code is %d.", code))
-                    }
-
-                    return stdout.toString()
+        val process = pb.start()
+        process.inputStream.use { stream ->
+            BufferedReader(InputStreamReader(stream)).use { brStdout ->
+                val stdout = StringBuilder()
+                for (line in brStdout.readLines()) {
+                    stdout.append(line)
                 }
+
+                val code = process.waitFor()
+                if (code != 0) {
+                    throw IOException(String.format(
+                            "Command finished with non-zero exit code. Exit code is %d.", code))
+                }
+
+                return stdout.toString()
             }
-        } catch (e: IOException) {
-            throw RuntimeException(e)
-        } catch (e: InterruptedException) {
-            throw RuntimeException(e)
         }
     }
 
