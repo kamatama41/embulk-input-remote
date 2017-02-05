@@ -1,233 +1,207 @@
-package org.embulk.input;
+package org.embulk.input
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.core.DockerClientBuilder;
-import org.embulk.EmbulkEmbed;
-import org.embulk.config.ConfigSource;
-import org.embulk.spi.InputPlugin;
-import org.embulk.test.EmbulkPluginTest;
-import org.embulk.test.ExtendedEmbulkTests;
-import org.embulk.test.TestingEmbulk;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import com.github.dockerjava.core.DockerClientBuilder
+import org.embulk.config.ConfigSource
+import org.embulk.spi.InputPlugin
+import org.embulk.test.EmbulkPluginTest
+import org.embulk.test.ExtendedEmbulkTests
+import org.embulk.test.TestOutputPlugin.assertRecords
+import org.embulk.test.TestingEmbulk
+import org.embulk.test.Utils.record
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Ignore
+import org.junit.Test
+import org.slf4j.LoggerFactory
+import java.util.Arrays
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+class TestRemoteFileInputPlugin : EmbulkPluginTest() {
+    private val CONTAINER_ID_HOST1 = "embulkinputremote_host1_1"
+    private val CONTAINER_ID_HOST2 = "embulkinputremote_host2_1"
+    private val dockerClient = DockerClientBuilder.getInstance().build()
 
-import static org.embulk.test.TestOutputPlugin.assertRecords;
-import static org.embulk.test.Utils.record;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-public class TestRemoteFileInputPlugin extends EmbulkPluginTest {
-    private static final String CONTAINER_ID_HOST1 = "embulkinputremote_host1_1";
-    private static final String CONTAINER_ID_HOST2 = "embulkinputremote_host2_1";
-    private static final DockerClient dockerClient = DockerClientBuilder.getInstance().build();
-
-    @Override
-    protected void setup(TestingEmbulk.Builder builder) {
-        builder.registerPlugin(InputPlugin.class, "remote", RemoteFileInputPlugin.class);
+    override fun setup(builder: TestingEmbulk.Builder) {
+        builder.registerPlugin(InputPlugin::class.java, "remote", RemoteFileInputPlugin::class.java)
 
         // Setup docker container
-        startContainer(CONTAINER_ID_HOST1);
-        startContainer(CONTAINER_ID_HOST2);
+        startContainer(CONTAINER_ID_HOST1)
+        startContainer(CONTAINER_ID_HOST2)
 
-        String logLevel = System.getenv("LOG_LEVEL");
+        val logLevel = System.getenv("LOG_LEVEL")
         if (logLevel != null) {
             // Set log level
-            Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-            rootLogger.setLevel(Level.toLevel(logLevel));
+            val rootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
+            rootLogger.level = Level.toLevel(logLevel)
         }
     }
 
-    @Test
-    public void loadFromRemote() throws Exception
-    {
-        runInput(baseConfig());
-        assertRecords(record(1, "user1"));
+    @Test fun loadFromRemote() {
+        runInput(baseConfig())
+        assertRecords(record(1, "user1"))
     }
 
     @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
-    @Test
-    public void loadFromRemoteViaPublicKey() throws Exception
-    {
-        String keyPath = System.getenv("KEY_PATH");
+    @Test fun loadFromRemoteViaPublicKey() {
+        var keyPath: String? = System.getenv("KEY_PATH")
         if (keyPath == null) {
-            keyPath = "./id_rsa_test";
+            keyPath = "./id_rsa_test"
         }
 
-        final ConfigSource publicKeyAuth = newConfig().set("auth", newConfig()
+        val publicKeyAuth = newConfig().set("auth", newConfig()
                 .set("type", "public_key")
                 .set("key_path", keyPath)
-        );
-        runInput(baseConfig().merge(publicKeyAuth));
+        )
+        runInput(baseConfig().merge(publicKeyAuth))
 
-        assertRecords(record(1, "user1"));
+        assertRecords(record(1, "user1"))
     }
 
-    @Test
-    public void testMultiHosts() throws Exception
-    {
-        final ConfigSource multiHosts = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
-        final ConfigSource config = baseConfig().merge(multiHosts);
+    @Test fun testMultiHosts() {
+        val multiHosts = newConfig()
+                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
+        val config = baseConfig().merge(multiHosts)
 
         // Run
-        runInput(config);
+        runInput(config)
         assertRecords(
                 record(1, "user1"),
                 record(2, "user2")
-        );
+        )
     }
 
-    @Test
-    public void loadAllFilesInDirectory() throws Exception
-    {
-        final ConfigSource directoryPath = newConfig()
-                .set("path", "/mount");
-        final ConfigSource config = baseConfig().merge(directoryPath);
+    @Test fun loadAllFilesInDirectory() {
+        val directoryPath = newConfig()
+                .set("path", "/mount")
+        val config = baseConfig().merge(directoryPath)
 
-        runInput(config);
+        runInput(config)
         assertRecords(
                 record(1L, "user1"),
                 record(1L, "command_user1")
-        );
+        )
     }
 
-    @Test
-    public void testDefaultPort() throws Exception
-    {
-        final ConfigSource defaultPort = newConfig()
-                .set("hosts", Collections.singletonList("localhost"))
-                .set("default_port", 10022);
+    @Test fun testDefaultPort() {
+        val defaultPort = newConfig()
+                .set("hosts", listOf("localhost"))
+                .set("default_port", 10022)
 
-        runInput(baseConfig().merge(defaultPort));
+        runInput(baseConfig().merge(defaultPort))
 
-        assertRecords(record(1L, "user1"));
+        assertRecords(record(1L, "user1"))
     }
 
-    @Test
-    public void testConfDiff() throws Exception
-    {
-        final ConfigSource host2Config = newConfig()
-                .set("hosts", Collections.singletonList("localhost:10023"));
-        ConfigSource config = baseConfig().merge(host2Config);
+    @Test fun testConfDiff() {
+        val host2Config = newConfig()
+                .set("hosts", listOf("localhost:10023"))
+        var config = baseConfig().merge(host2Config)
 
         // Run
-        TestingEmbulk.RunResult runResult = runInput(config);
-        assertRecords(record(2, "user2"));
+        val runResult = runInput(config)
+        assertRecords(record(2, "user2"))
 
         // Re-run with additional host1
-        final ConfigSource multiHost = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
-        config = baseConfig().merge(multiHost);
+        val multiHost = newConfig()
+                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
+        config = baseConfig().merge(multiHost)
 
-        runInput(config, runResult.getConfigDiff());
+        runInput(config, runResult.configDiff)
 
-        assertRecords(record(1, "user1"));
+        assertRecords(record(1, "user1"))
     }
 
-    @Test
-    public void testResume() throws Exception
-    {
-        final ConfigSource multiHost = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"));
-        final ConfigSource config = baseConfig().merge(multiHost);
+    @Test fun testResume() {
+        val multiHost = newConfig()
+                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
+        val config = baseConfig().merge(multiHost)
 
         // Stop host2 temporarily
-        stopContainer(CONTAINER_ID_HOST2);
+        stopContainer(CONTAINER_ID_HOST2)
 
         // Run (but will fail)
-        EmbulkEmbed.ResumableResult resumableResult = resume(config);
+        var resumableResult = resume(config)
 
-        assertThat(resumableResult.isSuccessful(), is(false));
-        assertRecords(record(1, "user1"));
+        assertThat(resumableResult.isSuccessful, `is`(false))
+        assertRecords(record(1, "user1"))
 
         // Start host2 again
-        startContainer(CONTAINER_ID_HOST2);
+        startContainer(CONTAINER_ID_HOST2)
 
         // Resume
-        resumableResult = resume(config, resumableResult.getResumeState());
+        resumableResult = resume(config, resumableResult.resumeState)
 
-        assertThat(resumableResult.isSuccessful(), is(true));
-        assertRecords(record(2, "user2"));
+        assertThat(resumableResult.isSuccessful, `is`(true))
+        assertRecords(record(2, "user2"))
     }
 
-    @Test
-    public void testIgnoreNotFoundHosts() throws Exception
-    {
-        final ConfigSource ignoreNotFoundHosts = newConfig()
+    @Test fun testIgnoreNotFoundHosts() {
+        val ignoreNotFoundHosts = newConfig()
                 .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
-                .set("ignore_not_found_hosts", true);
-        final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
+                .set("ignore_not_found_hosts", true)
+        val config = baseConfig().merge(ignoreNotFoundHosts)
 
         // Stop host2
-        stopContainer(CONTAINER_ID_HOST2);
+        stopContainer(CONTAINER_ID_HOST2)
 
         // Run (host2 will be ignored)
-        EmbulkEmbed.ResumableResult resumableResult = resume(config);
+        val resumableResult = resume(config)
 
-        assertThat(resumableResult.isSuccessful(), is(true));
-        assertRecords(record(1, "user1"));
+        assertThat<Boolean>(resumableResult.isSuccessful, `is`(true))
+        assertRecords(record(1, "user1"))
     }
 
-    @Test
-    public void testCommandOptions() throws Exception
-    {
-        final ConfigSource ignoreNotFoundHosts = newConfig()
+    @Test fun testCommandOptions() {
+        val ignoreNotFoundHosts = newConfig()
                 .set("hosts_command", "./src/test/resources/script/hosts.sh")
                 .set("hosts_separator", "\n")
-                .set("path_command", "echo '/mount/test_command.csv'");
-        final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
+                .set("path_command", "echo '/mount/test_command.csv'")
+        val config = baseConfig().merge(ignoreNotFoundHosts)
 
-        runInput(config);
+        runInput(config)
 
         assertRecords(
                 record(1, "command_user1"),
                 record(2, "command_user2")
-        );
+        )
     }
 
     //////////////////////////////
     // Helpers
     //////////////////////////////
 
-    private ConfigSource baseConfig() {
-        return ExtendedEmbulkTests.configFromResource("yaml/base.yml");
+    private fun baseConfig(): ConfigSource {
+        return ExtendedEmbulkTests.configFromResource("yaml/base.yml")
     }
 
     //////////////////////////////
     // Methods for Docker
     //////////////////////////////
 
-    private static void stopContainer(String containerId) {
+    private fun stopContainer(containerId: String) {
         if (isRunning(containerId)) {
-            dockerClient.stopContainerCmd(containerId).exec();
+            dockerClient.stopContainerCmd(containerId).exec()
         }
     }
 
-    private static void startContainer(String containerId) {
+    private fun startContainer(containerId: String) {
         if (!isRunning(containerId)) {
-            dockerClient.startContainerCmd(containerId).exec();
+            dockerClient.startContainerCmd(containerId).exec()
         }
     }
 
-    private static boolean isRunning(String containerId) {
-        List<Container> containers = dockerClient.listContainersCmd().exec();
-        for (Container container : containers) {
-            for (String name : container.getNames()) {
+    private fun isRunning(containerId: String): Boolean {
+        val containers = dockerClient.listContainersCmd().exec()
+        for (container in containers) {
+            for (name in container.names) {
                 if (name.contains(containerId)) {
-                    System.out.println("Found " + containerId);
-                    return true;
+                    println("Found " + containerId)
+                    return true
                 }
             }
         }
-        System.out.println("Not Found " + containerId);
-        return false;
+        println("Not Found " + containerId)
+        return false
     }
 }
