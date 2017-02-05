@@ -1,9 +1,19 @@
+buildscript {
+    ext.kotlin_version = '1.0.6'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 plugins {
     id "com.jfrog.bintray" version "1.1"
     id "com.github.jruby-gradle.base" version "0.1.5"
     id "java"
-    id "idea"
 }
+apply plugin: "kotlin"
 
 compileJava {
     options.compilerArgs = ['-Xlint:all']
@@ -19,9 +29,12 @@ configurations {
     provided
 }
 
-version = "0.2.0"
+version = "0.3.0"
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile  "org.embulk:embulk-core:0.8.16"
     compile  "com.hierynomus:sshj:0.19.1"
     compile  "com.jcraft:jzlib:1.1.3"
