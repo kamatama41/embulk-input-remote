@@ -71,7 +71,7 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
             return outputStream
         }
 
-        override fun getTargetDirectory(dirname: String?): LocalDestFile {
+        override fun getTargetDirectory(dirname: String): LocalDestFile {
             return this
         }
     }

@@ -114,7 +114,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
         return Exec.newConfigDiff().set("done_targets", task.getTargets())
     }
 
-    override fun cleanup(taskSource: TaskSource?, taskCount: Int, successTaskReports: MutableList<TaskReport>?) {
+    override fun cleanup(taskSource: TaskSource, taskCount: Int, successTaskReports: MutableList<TaskReport>) {
     }
 
     override fun open(taskSource: TaskSource, taskIndex: Int): TransactionalFileInput {
