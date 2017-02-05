@@ -2,7 +2,6 @@ package org.embulk.input
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.common.base.Optional
-import com.google.common.collect.ImmutableList
 import org.embulk.config.Config
 import org.embulk.config.ConfigDefault
 import org.embulk.config.ConfigDiff
@@ -136,35 +135,26 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun listTargets(task: PluginTask): List<Target> {
         val hosts = listHosts(task)
         val path = getPath(task)
-
-        val builder = ImmutableList.builder<Target>()
         val doneTargets = task.getDoneTargets()
-        for (host in hosts) {
-            val split = host.split(":".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()
-            val targetHost = split[0]
-            var targetPort = task.getDefaultPort()
-            if (split.size > 1) {
-                targetPort = Integer.valueOf(split[1])!!
-            }
-            val target = Target(targetHost, targetPort, path)
+        val ignoreNotFoundHosts = task.getIgnoreNotFoundHosts()
 
-            if (!doneTargets.contains(target)) {
-                if (task.getIgnoreNotFoundHosts()) {
-                    try {
-                        val exists = exists(target, task)
-                        if (!exists) {
-                            continue
-                        }
-                    } catch (e: IOException) {
-                        log.warn("failed to check the file exists. $target", e)
-                        continue
-                    }
-
+        return hosts.map {
+            val split = it.split(Regex(":"))
+            val host = split[0]
+            val port = if (split.size > 1) split[1].toInt() else task.getDefaultPort()
+            Target(host, port, path)
+        }.filter {
+            !doneTargets.contains(it)
+        }.filter {
+            !ignoreNotFoundHosts || {
+                try {
+                    exists(it, task)
+                } catch (e: IOException) {
+                    log.warn("failed to check the file exists. $it", e)
+                    false
                 }
-                builder.add(target)
-            }
+            }()
         }
-        return builder.build()
     }
 
     private fun listHosts(task: PluginTask): List<String> {
