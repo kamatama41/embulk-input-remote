@@ -1,6 +1,5 @@
 package org.embulk.input
 
-import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableList
@@ -247,40 +246,10 @@ class RemoteFileInputPlugin : FileInputPlugin {
         }
     }
 
-    class Target {
-        val host: String
-        val port: Int
-        val path: String
-
-        @JsonCreator
-        constructor(
-                @JsonProperty("host") host: String,
-                @JsonProperty("port") port: Int,
-                @JsonProperty("path") path: String) {
-            this.host = host
-            this.port = port
-            this.path = path
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other?.javaClass != javaClass) return false
-
-            other as Target
-
-            if (host != other.host) return false
-            if (port != other.port) return false
-            if (path != other.path) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = host.hashCode()
-            result = 31 * result + port
-            result = 31 * result + path.hashCode()
-            return result
-        }
+    data class Target constructor(
+            @JsonProperty("host") val host: String,
+            @JsonProperty("port") val port: Int,
+            @JsonProperty("path") val path: String) {
 
         override fun toString(): String {
             return "$host:$port:$path"
