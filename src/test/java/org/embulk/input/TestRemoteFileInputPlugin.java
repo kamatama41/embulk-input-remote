@@ -180,9 +180,9 @@ public class TestRemoteFileInputPlugin extends EmbulkPluginTest {
     public void testCommandOptions() throws Exception
     {
         final ConfigSource ignoreNotFoundHosts = newConfig()
-                .set("hosts_command", "echo localhost:10022,localhost:10023")
-                .set("hosts_separator", ",")
-                .set("path_command", "echo /mount/test_command.csv");
+                .set("hosts_command", "./src/test/resources/script/hosts.sh")
+                .set("hosts_separator", "\n")
+                .set("path_command", "echo '/mount/test_command.csv'");
         final ConfigSource config = baseConfig().merge(ignoreNotFoundHosts);
 
         runInput(config);

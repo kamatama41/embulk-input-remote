@@ -160,7 +160,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun listHosts(task: PluginTask): List<String> {
         val hostsCommand = task.getHostsCommand().orNull()
         if (hostsCommand != null) {
-            val stdout = execCommand(hostsCommand).trim({ it <= ' ' })
+            val stdout = execCommand(hostsCommand)
             return Arrays.asList<String>(*stdout.split(task.getHostsSeparator().toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray())
         } else {
             return task.getHosts()
@@ -170,7 +170,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun getPath(task: PluginTask): String {
         val pathCommand = task.getPathCommand().orNull()
         if (pathCommand != null) {
-            return execCommand(pathCommand).trim({ it <= ' ' })
+            return execCommand(pathCommand)
         } else {
             return task.getPath()
         }
@@ -182,17 +182,14 @@ class RemoteFileInputPlugin : FileInputPlugin {
         val process = pb.start()
         process.inputStream.use { stream ->
             BufferedReader(InputStreamReader(stream)).use { brStdout ->
-                val stdout = StringBuilder()
-                for (line in brStdout.readLines()) {
-                    stdout.append(line)
-                }
+                val stdout = brStdout.readText()
 
                 val code = process.waitFor()
                 if (code != 0) {
                     throw IOException("Command finished with non-zero exit code. Exit code is $code")
                 }
 
-                return stdout.toString()
+                return stdout.trim()
             }
         }
     }
