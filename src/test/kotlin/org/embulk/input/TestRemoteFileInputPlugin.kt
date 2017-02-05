@@ -192,16 +192,10 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     private fun isRunning(containerId: String): Boolean {
-        val containers = dockerClient.listContainersCmd().exec()
-        for (container in containers) {
-            for (name in container.names) {
-                if (name.contains(containerId)) {
-                    println("Found " + containerId)
-                    return true
-                }
+        return dockerClient.listContainersCmd().exec().any { container ->
+            container.names.any { name ->
+                name.contains(containerId)
             }
         }
-        println("Not Found " + containerId)
-        return false
     }
 }
