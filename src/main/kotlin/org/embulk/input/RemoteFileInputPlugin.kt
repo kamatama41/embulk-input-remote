@@ -99,7 +99,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     override fun transaction(config: ConfigSource, control: FileInputPlugin.Control): ConfigDiff {
         val task = config.loadConfig(PluginTask::class.java)
         val targets = listTargets(task)
-        log.info("Loading targets {}", targets)
+        log.info("Loading targets $targets")
         task.setTargets(targets)
 
         // number of processors is same with number of targets
@@ -159,7 +159,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
                             continue
                         }
                     } catch (e: IOException) {
-                        log.warn("failed to check the file exists. " + target.toString(), e)
+                        log.warn("failed to check the file exists. $target", e)
                         continue
                     }
 
@@ -191,7 +191,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
 
     private fun execCommand(command: String): String {
         val pb = ProcessBuilder("sh", "-c", command)    // TODO: windows
-        log.info("Running command {}", command)
+        log.info("Running command $command")
         val process = pb.start()
         process.inputStream.use { stream ->
             BufferedReader(InputStreamReader(stream)).use { brStdout ->
@@ -202,8 +202,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
 
                 val code = process.waitFor()
                 if (code != 0) {
-                    throw IOException(String.format(
-                            "Command finished with non-zero exit code. Exit code is %d.", code))
+                    throw IOException("Command finished with non-zero exit code. Exit code is $code")
                 }
 
                 return stdout.toString()
@@ -213,12 +212,12 @@ class RemoteFileInputPlugin : FileInputPlugin {
 
     private fun exists(target: Target, task: PluginTask): Boolean {
         SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
-            val checkCmd = "ls " + target.path    // TODO: windows
+            val checkCmd = "ls ${target.path}"    // TODO: windows
             val timeout = 5/* second */
             val commandResult = client.execCommand(checkCmd, timeout)
 
             if (commandResult.status != 0) {
-                log.warn("Remote file not found. {}", target.toString())
+                log.warn("Remote file not found. $target")
                 return false
             } else {
                 return true
