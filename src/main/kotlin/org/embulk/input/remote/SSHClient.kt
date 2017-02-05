@@ -10,16 +10,19 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
-fun connect(
-        host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig
-): SSHClient {
-    val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
-    client.connectToHost(host, port, authConfig)
-    return client
-}
+class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
+    companion object {
+        @JvmStatic
+        fun connect(
+                host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig
+        ): SSHClient {
+            val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
+            client.connectToHost(host, port, authConfig)
+            return client
+        }
+    }
 
-class SSHClient internal constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
-    internal fun connectToHost(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig) {
+    private fun connectToHost(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig) {
         if (authConfig.getSkipHostKeyVerification()) {
             client.addHostKeyVerifier(PromiscuousVerifier())
         }

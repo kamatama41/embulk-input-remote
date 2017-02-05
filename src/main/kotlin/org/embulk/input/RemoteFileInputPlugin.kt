@@ -11,7 +11,7 @@ import org.embulk.config.ConfigSource
 import org.embulk.config.Task
 import org.embulk.config.TaskReport
 import org.embulk.config.TaskSource
-import org.embulk.input.remote.connect
+import org.embulk.input.remote.SSHClient
 import org.embulk.spi.BufferAllocator
 import org.embulk.spi.Exec
 import org.embulk.spi.FileInputPlugin
@@ -212,7 +212,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun exists(target: Target, task: PluginTask): Boolean {
-        connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
             val checkCmd = "ls " + target.path    // TODO: windows
             val timeout = 5/* second */
             val commandResult = client.execCommand(checkCmd, timeout)
@@ -227,7 +227,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun download(target: Target, task: PluginTask): InputStream {
-        connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
             val stream = ByteArrayOutputStream()
             client.scpDownload(target.path, stream)
             return ByteArrayInputStream(stream.toByteArray())
