@@ -4,7 +4,14 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableList
-import org.embulk.config.*
+import org.embulk.config.Config
+import org.embulk.config.ConfigDefault
+import org.embulk.config.ConfigDiff
+import org.embulk.config.ConfigInject
+import org.embulk.config.ConfigSource
+import org.embulk.config.Task
+import org.embulk.config.TaskReport
+import org.embulk.config.TaskSource
 import org.embulk.input.remote.connect
 import org.embulk.spi.BufferAllocator
 import org.embulk.spi.Exec
@@ -12,8 +19,15 @@ import org.embulk.spi.FileInputPlugin
 import org.embulk.spi.TransactionalFileInput
 import org.embulk.spi.util.InputStreamFileInput
 import org.embulk.spi.util.InputStreamTransactionalFileInput
-import java.io.*
-import java.util.*
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.util.ArrayList
+import java.util.Arrays
+
 
 class RemoteFileInputPlugin : FileInputPlugin {
     interface PluginTask : Task {
