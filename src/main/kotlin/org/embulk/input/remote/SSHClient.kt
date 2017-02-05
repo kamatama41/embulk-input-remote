@@ -55,21 +55,19 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
 
     fun scpDownload(path: String, stream: OutputStream) {
         client.useCompression()
-        client.newSCPFileTransfer().download(path, InMemoryDestFileImpl(stream))
+        client.newSCPFileTransfer().download(path, object :InMemoryDestFile() {
+            override fun getOutputStream(): OutputStream {
+                return stream
+            }
+
+            override fun getTargetDirectory(dirname: String): LocalDestFile {
+                return this
+            }
+        })
     }
 
     override fun close() {
         client.close()
-    }
-
-    private class InMemoryDestFileImpl(private val outputStream: OutputStream) : InMemoryDestFile() {
-        override fun getOutputStream(): OutputStream {
-            return outputStream
-        }
-
-        override fun getTargetDirectory(dirname: String): LocalDestFile {
-            return this
-        }
     }
 
     data class CommandResult(val status: Int, val stdout: InputStream)
