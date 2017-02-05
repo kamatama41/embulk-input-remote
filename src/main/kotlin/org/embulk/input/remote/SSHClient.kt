@@ -33,15 +33,11 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
         val user = authConfig.getUser().or(System.getProperty("user.name"))
 
         if ("password" == type) {
-            if (authConfig.getPassword().isPresent) {
-                client.authPassword(user, authConfig.getPassword().get())
-            } else {
-                throw IllegalStateException("Password is not set.")
-            }
+            client.authPassword(user, authConfig.getPassword().get())
         } else if ("public_key" == type) {
-            if (authConfig.getKeyPath().isPresent) {
-                client.authPublickey(user, authConfig.getKeyPath().get())
-            } else {
+            authConfig.getKeyPath().transform {
+                client.authPublickey(user, it)
+            }.or {
                 client.authPublickey(user)
             }
         } else {

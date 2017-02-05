@@ -157,24 +157,16 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun listHosts(task: PluginTask): List<String> {
-        val hostsCommand = task.getHostsCommand().orNull()
-        if (hostsCommand != null) {
-            return execCommand(hostsCommand).split(task.getHostsSeparator().toRegex())
-        } else {
-            return task.getHosts()
-        }
+        return task.getHostsCommand().transform {
+            execCommand(it).split(task.getHostsSeparator().toRegex())
+        }.or(task.getHosts())
     }
 
     private fun getPath(task: PluginTask): String {
-        val pathCommand = task.getPathCommand().orNull()
-        if (pathCommand != null) {
-            return execCommand(pathCommand)
-        } else {
-            return task.getPath()
-        }
+        return task.getPathCommand().transform { execCommand(it) }.or(task.getPath())
     }
 
-    private fun execCommand(command: String): String {
+    private fun execCommand(command: String?): String {
         val pb = ProcessBuilder("sh", "-c", command)    // TODO: windows
         log.info("Running command $command")
         val process = pb.start()
