@@ -16,7 +16,6 @@ import org.embulk.spi.BufferAllocator
 import org.embulk.spi.Exec
 import org.embulk.spi.FileInputPlugin
 import org.embulk.spi.TransactionalFileInput
-import org.embulk.spi.util.InputStreamFileInput
 import org.embulk.spi.util.InputStreamTransactionalFileInput
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -125,10 +124,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
         val task = taskSource.loadTask(PluginTask::class.java)
         val target = task.getTargets()[taskIndex]
 
-        return object : InputStreamTransactionalFileInput(
-                task.getBufferAllocator(),
-                InputStreamFileInput.Opener { download(target, task) }
-        ) {
+        return object : InputStreamTransactionalFileInput(task.getBufferAllocator(), { download(target, task) }) {
             override fun abort() {
             }
 
