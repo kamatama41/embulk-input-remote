@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.util.ArrayList
 import java.util.Arrays
 
 
@@ -112,9 +111,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
 
         control.run(taskSource, taskCount)
 
-        val targets = ArrayList<Target>(task.getTargets())
-
-        return Exec.newConfigDiff().set("done_targets", targets)
+        return Exec.newConfigDiff().set("done_targets", task.getTargets())
     }
 
     override fun cleanup(taskSource: TaskSource?, taskCount: Int, successTaskReports: MutableList<TaskReport>?) {
