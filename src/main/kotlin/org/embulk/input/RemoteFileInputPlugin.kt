@@ -127,9 +127,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
                 return Exec.newTaskReport()
             }
         }
-
     }
-
 
     private fun listTargets(task: PluginTask): List<Target> {
         val hosts = listHosts(task)
@@ -193,9 +191,8 @@ class RemoteFileInputPlugin : FileInputPlugin {
             if (commandResult.status != 0) {
                 log.warn("Remote file not found. $target")
                 return false
-            } else {
-                return true
             }
+            return true
         }
     }
 
@@ -216,5 +213,4 @@ class RemoteFileInputPlugin : FileInputPlugin {
             return "$host:$port:$path"
         }
     }
-
 }
