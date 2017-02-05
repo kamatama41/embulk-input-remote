@@ -65,8 +65,6 @@ class RemoteFileInputPlugin : FileInputPlugin {
         @ConfigDefault("[]")
         fun getDoneTargets(): List<Target>
 
-        fun setDoneTargets(lastTarget: List<Target>)
-
         fun getTargets(): List<Target>
 
         fun setTargets(targets: List<Target>)
