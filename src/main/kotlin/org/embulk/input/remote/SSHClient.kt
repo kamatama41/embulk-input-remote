@@ -50,7 +50,7 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
         client.startSession().use { session ->
             val cmd = session.exec(command)
             cmd.join(timeoutSecond.toLong(), TimeUnit.SECONDS)
-            return CommandResult(cmd.exitStatus!!, cmd.inputStream)
+            return CommandResult(cmd.exitStatus, cmd.inputStream)
         }
     }
 
