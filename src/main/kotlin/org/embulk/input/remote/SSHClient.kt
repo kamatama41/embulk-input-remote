@@ -52,7 +52,7 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
 
     fun scpDownload(path: String, stream: OutputStream) {
         client.useCompression()
-        client.newSCPFileTransfer().download(path, object :InMemoryDestFile() {
+        client.newSCPFileTransfer().download(path, object : InMemoryDestFile() {
             override fun getOutputStream(): OutputStream {
                 return stream
             }
