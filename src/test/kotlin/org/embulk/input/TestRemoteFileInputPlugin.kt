@@ -29,11 +29,10 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
         startContainer(CONTAINER_ID_HOST1)
         startContainer(CONTAINER_ID_HOST2)
 
-        val logLevel = System.getenv("LOG_LEVEL")
-        if (logLevel != null) {
+        System.getenv("LOG_LEVEL")?.let {
             // Set log level
             val rootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
-            rootLogger.level = Level.toLevel(logLevel)
+            rootLogger.level = Level.toLevel(it)
         }
     }
 
@@ -44,10 +43,7 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
 
     @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
     @Test fun loadFromRemoteViaPublicKey() {
-        var keyPath: String? = System.getenv("KEY_PATH")
-        if (keyPath == null) {
-            keyPath = "./id_rsa_test"
-        }
+        val keyPath = System.getenv("KEY_PATH") ?: "./id_rsa_test"
 
         val publicKeyAuth = newConfig().set("auth", newConfig()
                 .set("type", "public_key")
