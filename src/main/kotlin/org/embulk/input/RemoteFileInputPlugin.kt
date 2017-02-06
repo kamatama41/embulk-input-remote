@@ -183,7 +183,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun exists(target: Target, task: PluginTask): Boolean {
         SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
             val checkCmd = "ls ${target.path}"    // TODO: windows
-            val timeout = 5/* second */
+            val timeout = 5 /* seconds */
             val commandResult = client.execCommand(checkCmd, timeout)
 
             if (commandResult.status != 0) {
