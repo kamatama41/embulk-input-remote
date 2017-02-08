@@ -26,78 +26,76 @@ import java.io.InputStreamReader
 
 class RemoteFileInputPlugin : FileInputPlugin {
     interface PluginTask : Task {
-        @Config("hosts")
-        @ConfigDefault("[]")
-        fun getHosts(): List<String>
+        @get:Config("hosts")
+        @get:ConfigDefault("[]")
+        val hosts: List<String>
 
-        @Config("hosts_command")
-        @ConfigDefault("null")
-        fun getHostsCommand(): Optional<String>
+        @get:Config("hosts_command")
+        @get:ConfigDefault("null")
+        val hostsCommand: Optional<String>
 
-        @Config("hosts_separator")
-        @ConfigDefault("\" \"")
-        fun getHostsSeparator(): String
+        @get:Config("hosts_separator")
+        @get:ConfigDefault("\" \"")
+        val hostsSeparator: String
 
-        @Config("default_port")
-        @ConfigDefault("22")
-        fun getDefaultPort(): Int
+        @get:Config("default_port")
+        @get:ConfigDefault("22")
+        val defaultPort: Int
 
-        @Config("path")
-        @ConfigDefault("\"\"")
-        fun getPath(): String
+        @get:Config("path")
+        @get:ConfigDefault("\"\"")
+        val path: String
 
-        @Config("path_command")
-        @ConfigDefault("null")
-        fun getPathCommand(): Optional<String>
+        @get:Config("path_command")
+        @get:ConfigDefault("null")
+        val pathCommand: Optional<String>
 
-        @Config("auth")
-        fun getAuthConfig(): AuthConfig
+        @get:Config("auth")
+        val authConfig: AuthConfig
 
-        @Config("ignore_not_found_hosts")
-        @ConfigDefault("false")
-        fun getIgnoreNotFoundHosts(): Boolean
+        @get:Config("ignore_not_found_hosts")
+        @get:ConfigDefault("false")
+        val ignoreNotFoundHosts: Boolean
 
-        @Config("done_targets")
-        @ConfigDefault("[]")
-        fun getDoneTargets(): List<Target>
+        @get:Config("done_targets")
+        @get:ConfigDefault("[]")
+        val doneTargets: List<Target>
 
-        fun getTargets(): List<Target>
+        var targets: List<Target>
 
-        fun setTargets(targets: List<Target>)
-
-        @ConfigInject
-        fun getBufferAllocator(): BufferAllocator
+        @get:ConfigInject
+        val bufferAllocator: BufferAllocator
     }
 
     interface AuthConfig : Task {
-        @Config("type")
-        @ConfigDefault("\"public_key\"")
-        fun getType(): String
+        @get:Config("type")
+        @get:ConfigDefault("\"public_key\"")
+        val type: String
 
-        @Config("user")
-        @ConfigDefault("null")
-        fun getUser(): Optional<String>
+        @get:Config("user")
+        @get:ConfigDefault("null")
+        val user: Optional<String>
 
-        @Config("key_path")
-        @ConfigDefault("null")
-        fun getKeyPath(): Optional<String>
+        @get:Config("key_path")
+        @get:ConfigDefault("null")
+        val keyPath: Optional<String>
 
-        @Config("password")
-        @ConfigDefault("null")
-        fun getPassword(): Optional<String>
+        @get:Config("password")
+        @get:ConfigDefault("null")
+        val password: Optional<String>
 
-        @Config("skip_host_key_verification")
-        @ConfigDefault("false")
-        fun getSkipHostKeyVerification(): Boolean
+        @get:Config("skip_host_key_verification")
+        @get:ConfigDefault("false")
+        val skipHostKeyVerification: Boolean
     }
 
-    private val log = Exec.getLogger(javaClass)
+    private val log = getLogger()
 
     override fun transaction(config: ConfigSource, control: FileInputPlugin.Control): ConfigDiff {
-        val task = config.loadConfig(PluginTask::class.java)
+        val task: PluginTask = config.loadConfig()
         val targets = listTargets(task)
         log.info("Loading targets $targets")
-        task.setTargets(targets)
+        task.targets = targets
 
         // number of processors is same with number of targets
         val taskCount = targets.size
@@ -105,21 +103,21 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     override fun resume(taskSource: TaskSource, taskCount: Int, control: FileInputPlugin.Control): ConfigDiff {
-        val task = taskSource.loadTask(PluginTask::class.java)
+        val task: PluginTask = taskSource.loadTask()
 
         control.run(taskSource, taskCount)
 
-        return Exec.newConfigDiff().set("done_targets", task.getTargets())
+        return Exec.newConfigDiff().set("done_targets", task.targets)
     }
 
     override fun cleanup(taskSource: TaskSource, taskCount: Int, successTaskReports: MutableList<TaskReport>) {
     }
 
     override fun open(taskSource: TaskSource, taskIndex: Int): TransactionalFileInput {
-        val task = taskSource.loadTask(PluginTask::class.java)
-        val target = task.getTargets()[taskIndex]
+        val task: PluginTask = taskSource.loadTask()
+        val target = task.targets[taskIndex]
 
-        return object : InputStreamTransactionalFileInput(task.getBufferAllocator(), { download(target, task) }) {
+        return object : InputStreamTransactionalFileInput(task.bufferAllocator, { download(target, task) }) {
             override fun abort() {
             }
 
@@ -132,13 +130,13 @@ class RemoteFileInputPlugin : FileInputPlugin {
     private fun listTargets(task: PluginTask): List<Target> {
         val hosts = listHosts(task)
         val path = getPath(task)
-        val doneTargets = task.getDoneTargets()
-        val ignoreNotFoundHosts = task.getIgnoreNotFoundHosts()
+        val doneTargets = task.doneTargets
+        val ignoreNotFoundHosts = task.ignoreNotFoundHosts
 
         return hosts.map {
             val split = it.split(Regex(":"))
             val host = split[0]
-            val port = if (split.size > 1) split[1].toInt() else task.getDefaultPort()
+            val port = if (split.size > 1) split[1].toInt() else task.defaultPort
             Target(host, port, path)
         }.filter {
             !doneTargets.contains(it)
@@ -153,13 +151,13 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun listHosts(task: PluginTask): List<String> {
-        return task.getHostsCommand().transform {
-            execCommand(it).split(task.getHostsSeparator().toRegex())
-        }.or(task.getHosts())
+        return task.hostsCommand.transform {
+            execCommand(it).split(task.hostsSeparator.toRegex())
+        }.or(task.hosts)
     }
 
     private fun getPath(task: PluginTask): String {
-        return task.getPathCommand().transform { execCommand(it) }.or(task.getPath())
+        return task.pathCommand.transform { execCommand(it) }.or(task.path)
     }
 
     private fun execCommand(command: String?): String {
@@ -181,7 +179,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun exists(target: Target, task: PluginTask): Boolean {
-        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        SSHClient.connect(target.host, target.port, task.authConfig).use { client ->
             val checkCmd = "ls ${target.path}"    // TODO: windows
             val timeout = 5 /* seconds */
             val commandResult = client.execCommand(checkCmd, timeout)
@@ -195,7 +193,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun download(target: Target, task: PluginTask): InputStream {
-        SSHClient.connect(target.host, target.port, task.getAuthConfig()).use { client ->
+        SSHClient.connect(target.host, target.port, task.authConfig).use { client ->
             val stream = ByteArrayOutputStream()
             client.scpDownload(target.path, stream)
             return ByteArrayInputStream(stream.toByteArray())

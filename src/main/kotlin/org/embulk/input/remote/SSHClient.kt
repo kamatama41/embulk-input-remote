@@ -1,6 +1,7 @@
 package org.embulk.input.remote
 
 import net.schmizz.sshj.DefaultConfig
+import net.schmizz.sshj.SSHClient as SSHJ
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.xfer.InMemoryDestFile
 import net.schmizz.sshj.xfer.LocalDestFile
@@ -10,31 +11,31 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
-class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
+class SSHClient private constructor(val client: SSHJ) : Closeable {
     companion object {
         fun connect(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig): SSHClient {
-            val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
+            val client = SSHClient(SSHJ(DefaultConfig()))
             client.connectToHost(host, port, authConfig)
             return client
         }
     }
 
     private fun connectToHost(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig) {
-        if (authConfig.getSkipHostKeyVerification()) {
+        if (authConfig.skipHostKeyVerification) {
             client.addHostKeyVerifier(PromiscuousVerifier())
         }
         client.loadKnownHosts()
         client.connect(host, port)
 
-        val type = authConfig.getType()
-        val user = authConfig.getUser().or(System.getProperty("user.name"))
+        val type = authConfig.type
+        val user = authConfig.user.or(System.getProperty("user.name"))
 
         when (type) {
             "password" -> {
-                client.authPassword(user, authConfig.getPassword().get())
+                client.authPassword(user, authConfig.password.get())
             }
             "public_key" -> {
-                authConfig.getKeyPath().transform {
+                authConfig.keyPath.transform {
                     client.authPublickey(user, it)
                 }.or {
                     client.authPublickey(user)
