@@ -89,10 +89,10 @@ class RemoteFileInputPlugin : FileInputPlugin {
         val skipHostKeyVerification: Boolean
     }
 
-    private val log = Exec.getLogger(javaClass)
+    private val log = getLogger()
 
     override fun transaction(config: ConfigSource, control: FileInputPlugin.Control): ConfigDiff {
-        val task = config.loadConfig(PluginTask::class.java)
+        val task: PluginTask = config.loadConfig()
         val targets = listTargets(task)
         log.info("Loading targets $targets")
         task.targets = targets
@@ -103,7 +103,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     override fun resume(taskSource: TaskSource, taskCount: Int, control: FileInputPlugin.Control): ConfigDiff {
-        val task = taskSource.loadTask(PluginTask::class.java)
+        val task: PluginTask = taskSource.loadTask()
 
         control.run(taskSource, taskCount)
 
@@ -114,7 +114,7 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     override fun open(taskSource: TaskSource, taskIndex: Int): TransactionalFileInput {
-        val task = taskSource.loadTask(PluginTask::class.java)
+        val task: PluginTask = taskSource.loadTask()
         val target = task.targets[taskIndex]
 
         return object : InputStreamTransactionalFileInput(task.bufferAllocator, { download(target, task) }) {
