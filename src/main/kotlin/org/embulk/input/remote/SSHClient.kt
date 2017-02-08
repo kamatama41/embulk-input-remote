@@ -20,21 +20,21 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
     }
 
     private fun connectToHost(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig) {
-        if (authConfig.getSkipHostKeyVerification()) {
+        if (authConfig.skipHostKeyVerification) {
             client.addHostKeyVerifier(PromiscuousVerifier())
         }
         client.loadKnownHosts()
         client.connect(host, port)
 
-        val type = authConfig.getType()
-        val user = authConfig.getUser().or(System.getProperty("user.name"))
+        val type = authConfig.type
+        val user = authConfig.user.or(System.getProperty("user.name"))
 
         when (type) {
             "password" -> {
-                client.authPassword(user, authConfig.getPassword().get())
+                client.authPassword(user, authConfig.password.get())
             }
             "public_key" -> {
-                authConfig.getKeyPath().transform {
+                authConfig.keyPath.transform {
                     client.authPublickey(user, it)
                 }.or {
                     client.authPublickey(user)
