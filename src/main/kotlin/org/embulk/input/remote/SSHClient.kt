@@ -1,6 +1,7 @@
 package org.embulk.input.remote
 
 import net.schmizz.sshj.DefaultConfig
+import net.schmizz.sshj.SSHClient as SSHJ
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.xfer.InMemoryDestFile
 import net.schmizz.sshj.xfer.LocalDestFile
@@ -10,10 +11,10 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
-class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Closeable {
+class SSHClient private constructor(val client: SSHJ) : Closeable {
     companion object {
         fun connect(host: String, port: Int, authConfig: RemoteFileInputPlugin.AuthConfig): SSHClient {
-            val client = SSHClient(net.schmizz.sshj.SSHClient(DefaultConfig()))
+            val client = SSHClient(SSHJ(DefaultConfig()))
             client.connectToHost(host, port, authConfig)
             return client
         }
