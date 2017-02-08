@@ -29,16 +29,20 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
         val type = authConfig.getType()
         val user = authConfig.getUser().or(System.getProperty("user.name"))
 
-        if ("password" == type) {
-            client.authPassword(user, authConfig.getPassword().get())
-        } else if ("public_key" == type) {
-            authConfig.getKeyPath().transform {
-                client.authPublickey(user, it)
-            }.or {
-                client.authPublickey(user)
+        when (type) {
+            "password" -> {
+                client.authPassword(user, authConfig.getPassword().get())
             }
-        } else {
-            throw UnsupportedOperationException("Unsupported auth type : " + type)
+            "public_key" -> {
+                authConfig.getKeyPath().transform {
+                    client.authPublickey(user, it)
+                }.or {
+                    client.authPublickey(user)
+                }
+            }
+            else -> {
+                throw UnsupportedOperationException("Unsupported auth type : $type")
+            }
         }
     }
 
@@ -46,13 +50,13 @@ class SSHClient private constructor(val client: net.schmizz.sshj.SSHClient) : Cl
         client.startSession().use { session ->
             val cmd = session.exec(command)
             cmd.join(timeoutSecond.toLong(), TimeUnit.SECONDS)
-            return CommandResult(cmd.exitStatus!!, cmd.inputStream)
+            return CommandResult(cmd.exitStatus, cmd.inputStream)
         }
     }
 
     fun scpDownload(path: String, stream: OutputStream) {
         client.useCompression()
-        client.newSCPFileTransfer().download(path, object :InMemoryDestFile() {
+        client.newSCPFileTransfer().download(path, object : InMemoryDestFile() {
             override fun getOutputStream(): OutputStream {
                 return stream
             }
