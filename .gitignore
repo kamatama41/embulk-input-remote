@@ -5,3 +5,5 @@
 /classpath/
 build/
 .idea
+id_rsa_test
+id_rsa_test.pub
