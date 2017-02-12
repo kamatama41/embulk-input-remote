@@ -4,26 +4,23 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import com.github.dockerjava.core.DockerClientBuilder
 import org.embulk.config.ConfigSource
-import org.embulk.spi.InputPlugin
 import org.embulk.test.EmbulkPluginTest
-import org.embulk.test.ExtendedEmbulkTests
-import org.embulk.test.TestOutputPlugin.assertRecords
-import org.embulk.test.TestingEmbulk
-import org.embulk.test.Utils.record
+import org.embulk.test.TestOutputPlugin.Matcher.assertRecords
+import org.embulk.test.configFromResource
+import org.embulk.test.record
+import org.embulk.test.registerPlugin
+import org.embulk.test.set
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import org.slf4j.LoggerFactory
-import java.util.Arrays
 
 class TestRemoteFileInputPlugin : EmbulkPluginTest() {
-    private val CONTAINER_ID_HOST1 = "embulkinputremote_host1_1"
-    private val CONTAINER_ID_HOST2 = "embulkinputremote_host2_1"
-    private val dockerClient = DockerClientBuilder.getInstance().build()
 
-    override fun setup(builder: TestingEmbulk.Builder) {
-        builder.registerPlugin(InputPlugin::class.java, "remote", RemoteFileInputPlugin::class.java)
+    @Before fun setup() {
+        builder.registerPlugin(RemoteFileInputPlugin::class)
 
         // Setup docker container
         startContainer(CONTAINER_ID_HOST1)
@@ -45,22 +42,21 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     @Test fun loadFromRemoteViaPublicKey() {
         val keyPath = System.getenv("KEY_PATH") ?: "./id_rsa_test"
 
-        val publicKeyAuth = newConfig().set("auth", newConfig()
-                .set("type", "public_key")
-                .set("key_path", keyPath)
-        )
+        val publicKeyAuth = config().set("auth" to config().set(
+                "type" to "public_key",
+                "key_path" to keyPath
+        ))
         runInput(baseConfig().merge(publicKeyAuth))
 
         assertRecords(record(1, "user1"))
     }
 
     @Test fun testMultiHosts() {
-        val multiHosts = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
-        val config = baseConfig().merge(multiHosts)
+        val multiHosts = config()
+                .set("hosts", listOf("localhost:10022", "localhost:10023"))
 
         // Run
-        runInput(config)
+        runInput(baseConfig().merge(multiHosts))
         assertRecords(
                 record(1, "user1"),
                 record(2, "user2")
@@ -68,11 +64,9 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     @Test fun loadAllFilesInDirectory() {
-        val directoryPath = newConfig()
-                .set("path", "/mount")
-        val config = baseConfig().merge(directoryPath)
+        val directoryPath = config().set("path", "/mount")
 
-        runInput(config)
+        runInput(baseConfig().merge(directoryPath))
         assertRecords(
                 record(1L, "user1"),
                 record(1L, "command_user1")
@@ -80,9 +74,10 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     @Test fun testDefaultPort() {
-        val defaultPort = newConfig()
-                .set("hosts", listOf("localhost"))
-                .set("default_port", 10022)
+        val defaultPort = config().set(
+                "hosts" to listOf("localhost"),
+                "default_port" to 10022
+        )
 
         runInput(baseConfig().merge(defaultPort))
 
@@ -90,33 +85,26 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     @Test fun testConfDiff() {
-        val host2Config = newConfig()
-                .set("hosts", listOf("localhost:10023"))
-        var config = baseConfig().merge(host2Config)
+        val host2Config = config().set("hosts", listOf("localhost:10023"))
 
         // Run
-        val runResult = runInput(config)
+        val runResult = runInput(baseConfig().merge(host2Config))
         assertRecords(record(2, "user2"))
 
         // Re-run with additional host1
-        val multiHost = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
-        config = baseConfig().merge(multiHost)
-
-        runInput(config, runResult.configDiff)
+        val multiHost = config().set("hosts", listOf("localhost:10022", "localhost:10023"))
+        runInput(baseConfig().merge(multiHost), runResult.configDiff)
 
         assertRecords(record(1, "user1"))
     }
 
     @Test fun testResume() {
-        val multiHost = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
-        val config = baseConfig().merge(multiHost)
-
         // Stop host2 temporarily
         stopContainer(CONTAINER_ID_HOST2)
 
         // Run (but will fail)
+        val multiHost = config().set("hosts", listOf("localhost:10022", "localhost:10023"))
+        val config = baseConfig().merge(multiHost)
         var resumableResult = resume(config)
 
         assertThat(resumableResult.isSuccessful, `is`(false))
@@ -133,9 +121,10 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     @Test fun testIgnoreNotFoundHosts() {
-        val ignoreNotFoundHosts = newConfig()
-                .set("hosts", Arrays.asList("localhost:10022", "localhost:10023"))
-                .set("ignore_not_found_hosts", true)
+        val ignoreNotFoundHosts = config().set(
+                "hosts" to listOf("localhost:10022", "localhost:10023"),
+                "ignore_not_found_hosts" to true
+        )
         val config = baseConfig().merge(ignoreNotFoundHosts)
 
         // Stop host2
@@ -149,13 +138,12 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     @Test fun testCommandOptions() {
-        val ignoreNotFoundHosts = newConfig()
-                .set("hosts_command", "./src/test/resources/script/hosts.sh")
-                .set("hosts_separator", "\n")
-                .set("path_command", "echo '/mount/test_command.csv'")
-        val config = baseConfig().merge(ignoreNotFoundHosts)
-
-        runInput(config)
+        val ignoreNotFoundHosts = config().set(
+                "hosts_command" to "./src/test/resources/script/hosts.sh",
+                "hosts_separator" to "\n",
+                "path_command" to "echo '/mount/test_command.csv'"
+        )
+        runInput(baseConfig().merge(ignoreNotFoundHosts))
 
         assertRecords(
                 record(1, "command_user1"),
@@ -168,29 +156,31 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     //////////////////////////////
 
     private fun baseConfig(): ConfigSource {
-        return ExtendedEmbulkTests.configFromResource("yaml/base.yml")
+        return configFromResource("yaml/base.yml")
     }
 
-    //////////////////////////////
-    // Methods for Docker
-    //////////////////////////////
+    companion object DockerUtils {
+        private val CONTAINER_ID_HOST1 = "embulkinputremote_host1_1"
+        private val CONTAINER_ID_HOST2 = "embulkinputremote_host2_1"
+        private val dockerClient = DockerClientBuilder.getInstance().build()
 
-    private fun stopContainer(containerId: String) {
-        if (isRunning(containerId)) {
-            dockerClient.stopContainerCmd(containerId).exec()
+        private fun stopContainer(containerId: String) {
+            if (isRunning(containerId)) {
+                dockerClient.stopContainerCmd(containerId).exec()
+            }
         }
-    }
 
-    private fun startContainer(containerId: String) {
-        if (!isRunning(containerId)) {
-            dockerClient.startContainerCmd(containerId).exec()
+        private fun startContainer(containerId: String) {
+            if (!isRunning(containerId)) {
+                dockerClient.startContainerCmd(containerId).exec()
+            }
         }
-    }
 
-    private fun isRunning(containerId: String): Boolean {
-        return dockerClient.listContainersCmd().exec().any { container ->
-            container.names.any { name ->
-                name.contains(containerId)
+        private fun isRunning(containerId: String): Boolean {
+            return dockerClient.listContainersCmd().exec().any { container ->
+                container.names.any { name ->
+                    name.contains(containerId)
+                }
             }
         }
     }
