@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory
 class TestRemoteFileInputPlugin : EmbulkPluginTest() {
 
     @Before fun setup() {
-        builder.registerPlugin(RemoteFileInputPlugin::class, "remote")
+        builder.registerPlugin(RemoteFileInputPlugin::class)
 
         // Setup docker container
         startContainer(CONTAINER_ID_HOST1)
