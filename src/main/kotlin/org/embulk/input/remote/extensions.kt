@@ -1,4 +1,4 @@
-package org.embulk.input
+package org.embulk.input.remote
 
 import org.embulk.config.ConfigSource
 import org.embulk.config.TaskSource

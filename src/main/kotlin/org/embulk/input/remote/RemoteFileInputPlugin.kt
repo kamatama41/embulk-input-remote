@@ -1,4 +1,4 @@
-package org.embulk.input
+package org.embulk.input.remote
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.common.base.Optional
@@ -10,7 +10,6 @@ import org.embulk.config.ConfigSource
 import org.embulk.config.Task
 import org.embulk.config.TaskReport
 import org.embulk.config.TaskSource
-import org.embulk.input.remote.SSHClient
 import org.embulk.spi.BufferAllocator
 import org.embulk.spi.Exec
 import org.embulk.spi.FileInputPlugin
