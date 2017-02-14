@@ -1,4 +1,4 @@
-package org.embulk.input
+package org.embulk.input.remote
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger

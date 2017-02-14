@@ -12,6 +12,7 @@ plugins {
     id "com.jfrog.bintray" version "1.1"
     id "com.github.jruby-gradle.base" version "0.1.5"
     id "java"
+    id "checkstyle"
 }
 apply plugin: "kotlin"
 
@@ -49,15 +50,48 @@ task classpath(type: Copy, dependsOn: ["jar"]) {
     from (configurations.runtime - configurations.provided + files(jar.archivePath))
     into "classpath"
 }
-clean { delete 'classpath' }
+clean { delete "classpath" }
 
-task gem(type: JRubyExec, dependsOn: ["build", "gemspec", "classpath"]) {
+checkstyle {
+    configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
+    toolVersion = '6.14.1'
+}
+checkstyleMain {
+    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
+    ignoreFailures = true
+}
+checkstyleTest {
+    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
+    ignoreFailures = true
+}
+task checkstyle(type: Checkstyle) {
+    classpath = sourceSets.main.output + sourceSets.test.output
+    source = sourceSets.main.allJava + sourceSets.test.allJava
+}
+
+task gem(type: JRubyExec, dependsOn: ["gemspec", "classpath"]) {
     jrubyArgs "-rrubygems/gem_runner", "-eGem::GemRunner.new.run(ARGV)", "build"
-    script "build/gemspec"
+    script "${project.name}.gemspec"
     doLast { ant.move(file: "${project.name}-${project.version}.gem", todir: "pkg") }
 }
 
-task gemspec << { file("build/gemspec").write($/
+task gemPush(type: JRubyExec, dependsOn: ["gem"]) {
+    jrubyArgs "-rrubygems/gem_runner", "-eGem::GemRunner.new.run(ARGV)", "push"
+    script "pkg/${project.name}-${project.version}.gem"
+}
+
+task "package"(dependsOn: ["gemspec", "classpath"]) {
+    doLast {
+        println "> Build succeeded."
+        println "> You can run embulk with '-L ${file(".").absolutePath}' argument."
+    }
+}
+
+task gemspec {
+    ext.gemspecFile = file("${project.name}.gemspec")
+    inputs.file "build.gradle"
+    outputs.file gemspecFile
+    doLast { gemspecFile.write($/
 Gem::Specification.new do |spec|
   spec.name          = "${project.name}"
   spec.version       = "${project.version}"
@@ -76,4 +110,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', ['>= 10.0']
 end
 /$)
+    }
 }
+clean { delete "${project.name}.gemspec" }

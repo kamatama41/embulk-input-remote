@@ -5,7 +5,6 @@ import net.schmizz.sshj.SSHClient as SSHJ
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.xfer.InMemoryDestFile
 import net.schmizz.sshj.xfer.LocalDestFile
-import org.embulk.input.RemoteFileInputPlugin
 import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream

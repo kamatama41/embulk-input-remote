@@ -1,9 +1,14 @@
 *~
 /pkg/
 /tmp/
+*.gemspec
 .gradle/
 /classpath/
 build/
 .idea
+/.settings/
+/.metadata/
+.classpath
+.project
 id_rsa_test
 id_rsa_test.pub
