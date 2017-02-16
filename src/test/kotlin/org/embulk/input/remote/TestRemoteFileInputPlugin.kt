@@ -18,7 +18,6 @@ import org.junit.Test
 import org.slf4j.LoggerFactory
 
 class TestRemoteFileInputPlugin : EmbulkPluginTest() {
-
     @Before fun setup() {
         builder.registerPlugin(RemoteFileInputPlugin::class)
 
