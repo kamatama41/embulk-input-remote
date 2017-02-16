@@ -18,4 +18,5 @@ before_install:
   - docker-compose ps
 
 script:
+  - ./gradlew checkstyle
   - ./gradlew --info check

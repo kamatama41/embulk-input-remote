@@ -22,7 +22,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 
-
 class RemoteFileInputPlugin : FileInputPlugin {
     interface PluginTask : Task {
         @get:Config("hosts")
@@ -203,7 +202,6 @@ class RemoteFileInputPlugin : FileInputPlugin {
             @JsonProperty("host") val host: String,
             @JsonProperty("port") val port: Int,
             @JsonProperty("path") val path: String) {
-
         override fun toString(): String {
             return "$host:$port:$path"
         }
