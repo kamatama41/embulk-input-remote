@@ -1,10 +1,10 @@
 buildscript {
-    ext.kotlin_version = '1.0.6'
+    ext.kotlinVersion = '1.1.1'
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     }
 }
 
@@ -36,7 +36,7 @@ sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile  "org.embulk:embulk-core:0.8.16"
     compile  "com.hierynomus:sshj:0.19.1"
     compile  "com.jcraft:jzlib:1.1.3"
