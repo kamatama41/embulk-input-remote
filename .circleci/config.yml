@@ -1,0 +1,31 @@
+version: 2
+jobs:
+  build:
+    machine:
+      enabled: true
+    working_directory: ~/embulk-input-remote
+    steps:
+      - checkout
+
+      - run: ssh-keygen -t ecdsa -f id_rsa_test -N ''
+      - run: docker-compose up -d
+      - run: docker-compose ps
+
+      - restore_cache:
+          key: embulk-input-remote-{{ checksum "build.gradle" }}
+      - run: ./gradlew checkstyle
+      - run: ./gradlew check --full-stacktrace
+      - save_cache:
+          paths:
+            - "~/.gradle"
+          key: embulk-input-remote-{{ checksum "build.gradle" }}
+
+      - deploy:
+          name: Push Gem to RubyGems.org and bump up
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "release" ]; then
+              curl -f -u $RUBYGEMS_USER:$RUBYGEMS_PASSWORD https://rubygems.org/api/v1/api_key.yaml > ~/.gem/credentials; chmod 0600 ~/.gem/credentials
+              git checkout master
+              git reset --hard origin/master
+              ./gradlew release -Prelease.useAutomaticVersion=true
+            fi
