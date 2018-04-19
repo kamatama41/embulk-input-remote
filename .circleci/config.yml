@@ -3,6 +3,7 @@ jobs:
   build:
     docker:
       - image: circleci/openjdk:8
+    working_directory: ~/embulk-input-remote
     steps:
       - checkout
       - setup_remote_docker
