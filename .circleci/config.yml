@@ -5,6 +5,7 @@ jobs:
       - image: circleci/openjdk:8
     steps:
       - checkout
+      - setup_remote_docker
 
       - run: ssh-keygen -t ecdsa -f id_rsa_test -N ''
       - run: docker-compose up -d
