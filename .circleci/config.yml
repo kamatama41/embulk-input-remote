@@ -12,6 +12,7 @@ jobs:
 
       - restore_cache:
           key: v1-gradle-{{ checksum "build.gradle" }}
+          key: v1-gradle-
       - run: ./gradlew checkstyle
       - run: ./gradlew check --full-stacktrace
       - save_cache:
