@@ -1,9 +1,8 @@
 version: 2
 jobs:
   build:
-    machine:
-      enabled: true
-    working_directory: ~/embulk-input-remote
+    docker:
+      - image: circleci/openjdk:8
     steps:
       - checkout
 
@@ -12,13 +11,14 @@ jobs:
       - run: docker-compose ps
 
       - restore_cache:
-          key: embulk-input-remote-{{ checksum "build.gradle" }}
+          key: v1-gradle-{{ checksum "build.gradle" }}
       - run: ./gradlew checkstyle
       - run: ./gradlew check --full-stacktrace
       - save_cache:
           paths:
             - "~/.gradle"
-          key: embulk-input-remote-{{ checksum "build.gradle" }}
+            - "~/.m2"
+          key: v1-gradle-{{ checksum "build.gradle" }}
 
       - deploy:
           name: Push Gem to RubyGems.org and bump up
