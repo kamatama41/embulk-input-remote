@@ -14,7 +14,7 @@ jobs:
           key: v1-gradle-{{ checksum "build.gradle" }}
           key: v1-gradle-
       - run: ./gradlew checkstyle
-      - run: ./gradlew check --full-stacktrace
+      - run: ./gradlew check --info
       - run:
           name: Save test results
           command: |

@@ -47,6 +47,10 @@ embulk {
     homepage = "https://github.com/kamatama41/embulk-input-remote"
 }
 
+test {
+    jvmArgs '-Djava.security.egd=file:/dev/./urandom'
+}
+
 release {
     git { requireBranch = 'master' }
 }
