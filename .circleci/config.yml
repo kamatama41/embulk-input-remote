@@ -1,14 +1,12 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: circleci/openjdk:8
+    machine:
+      enabled: true
     working_directory: ~/embulk-input-remote
     steps:
       - checkout
-      - setup_remote_docker
 
-      - run: ssh-keygen -t ecdsa -f id_rsa_test -N ''
       - run: docker-compose up -d
       - run: docker-compose ps
 

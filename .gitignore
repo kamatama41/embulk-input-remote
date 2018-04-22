@@ -10,5 +10,3 @@ build/
 /.metadata/
 .classpath
 .project
-id_rsa_test
-id_rsa_test.pub
