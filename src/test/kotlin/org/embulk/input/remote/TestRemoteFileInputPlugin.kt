@@ -37,7 +37,6 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
         assertRecords(record(1, "user1"))
     }
 
-    @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
     @Test fun loadFromRemoteViaPublicKey() {
         val keyPath = System.getenv("KEY_PATH") ?: "./id_rsa_test"
 
@@ -159,8 +158,8 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
     }
 
     companion object DockerUtils {
-        private val CONTAINER_ID_HOST1 = "embulkinputremote_host1_1"
-        private val CONTAINER_ID_HOST2 = "embulkinputremote_host2_1"
+        private const val CONTAINER_ID_HOST1 = "embulk-input-remote_host1"
+        private const val CONTAINER_ID_HOST2 = "embulk-input-remote_host2"
         private val dockerClient = DockerClientBuilder.getInstance().build()
 
         private fun stopContainer(containerId: String) {

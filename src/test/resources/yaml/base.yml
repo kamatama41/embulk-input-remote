@@ -3,9 +3,9 @@ hosts:
   - localhost:10022
 path: /mount/test.csv
 auth:
-  user: root
+  user: ubuntu
   type: password
-  password: root
+  password: passw0rd
   skip_host_key_verification: true
 parser:
   type: csv

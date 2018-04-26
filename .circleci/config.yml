@@ -7,18 +7,32 @@ jobs:
     steps:
       - checkout
 
-      - run: ssh-keygen -t ecdsa -f id_rsa_test -N ''
       - run: docker-compose up -d
       - run: docker-compose ps
-
+      - run: |
+          docker cp $(docker inspect --format="{{.Id}}" embulk-input-remote_host1):/home/ubuntu/.ssh/id_rsa_test . && \
+          chmod 400 id_rsa_test
       - restore_cache:
-          key: embulk-input-remote-{{ checksum "build.gradle" }}
+          key: v1-gradle-{{ checksum "build.gradle" }}
+          key: v1-gradle-
       - run: ./gradlew checkstyle
-      - run: ./gradlew check --full-stacktrace
+      - run: ./gradlew check --info
+      - run:
+          name: Save test results
+          command: |
+            mkdir -p ~/junit/
+            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/junit/ \;
+          when: always
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+
       - save_cache:
           paths:
             - "~/.gradle"
-          key: embulk-input-remote-{{ checksum "build.gradle" }}
+            - "~/.m2"
+          key: v1-gradle-{{ checksum "build.gradle" }}
 
       - deploy:
           name: Push Gem to RubyGems.org and bump up
