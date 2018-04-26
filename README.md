@@ -36,17 +36,17 @@ in:
   hosts:
     - host1
     - host2:10022
-#  hosts_command: echo 'host1,host2'
-#  hosts_separator: ','
+  # hosts_command: echo 'host1,host2:10022'
+  # hosts_separator: ','
   path: /some/path/20150414125923
-#  path_command: echo /some/path/`date "+%Y%m%d%H%M%S"`
+  # path_command: echo /some/path/`date "+%Y%m%d%H%M%S"`
   ignore_not_found_hosts: true
   auth:
-    user: {username}
+    user: a_user
     type: public_key
     key_path: /usr/home/.ssh/id_rsa
-#    type: password
-#    password: {password}
+    # type: password
+    # password: {password}
 ```
 
 ## Note
