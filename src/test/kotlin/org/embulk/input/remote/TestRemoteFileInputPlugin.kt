@@ -37,7 +37,6 @@ class TestRemoteFileInputPlugin : EmbulkPluginTest() {
         assertRecords(record(1, "user1"))
     }
 
-    @Ignore("Cannot pass on TravisCI, although pass on Local Mac OS...")
     @Test fun loadFromRemoteViaPublicKey() {
         val keyPath = System.getenv("KEY_PATH") ?: "./id_rsa_test"
 

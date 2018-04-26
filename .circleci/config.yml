@@ -9,7 +9,9 @@ jobs:
 
       - run: docker-compose up -d
       - run: docker-compose ps
-
+      - run: |
+          docker cp $(docker inspect --format="{{.Id}}" embulk-input-remote_host1):/home/ubuntu/.ssh/id_rsa_test . && \
+          chmod 400 id_rsa_test
       - restore_cache:
           key: v1-gradle-{{ checksum "build.gradle" }}
           key: v1-gradle-
