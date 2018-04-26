@@ -1,16 +1,16 @@
-version: '2'
+version: '3'
 services:
   host1:
-    image: "sickp/alpine-sshd:7.2"
+    container_name: embulk-input-remote_host1
+    image: "kamatama41/ubuntu-sshd"
     ports:
      - "10022:22"
     volumes:
      - ./src/test/resources/input/host1/:/mount
-     - ./id_rsa_test.pub:/root/.ssh/authorized_keys
   host2:
-    image: "sickp/alpine-sshd:7.2"
+    container_name: embulk-input-remote_host2
+    image: "kamatama41/ubuntu-sshd"
     ports:
      - "10023:22"
     volumes:
      - ./src/test/resources/input/host2/:/mount
-     - ./id_rsa_test.pub:/root/.ssh/authorized_keys
