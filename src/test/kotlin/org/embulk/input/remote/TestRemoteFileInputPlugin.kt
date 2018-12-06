@@ -5,22 +5,20 @@ import ch.qos.logback.classic.Logger
 import com.github.dockerjava.core.DockerClientBuilder
 import org.embulk.config.ConfigSource
 import org.embulk.test.EmbulkPluginTest
+import org.embulk.test.EmbulkTest
 import org.embulk.test.TestOutputPlugin.Matcher.assertRecords
 import org.embulk.test.configFromResource
 import org.embulk.test.record
-import org.embulk.test.registerPlugin
 import org.embulk.test.set
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Before
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 
+@EmbulkTest(value = [RemoteFileInputPlugin::class])
 class TestRemoteFileInputPlugin : EmbulkPluginTest() {
-    @Before fun setup() {
-        builder.registerPlugin(RemoteFileInputPlugin::class)
-
+    @BeforeEach fun setup() {
         // Setup docker container
         startContainer(CONTAINER_ID_HOST1)
         startContainer(CONTAINER_ID_HOST2)
