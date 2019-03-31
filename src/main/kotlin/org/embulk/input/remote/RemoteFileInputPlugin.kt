@@ -85,6 +85,10 @@ class RemoteFileInputPlugin : FileInputPlugin {
         @get:Config("skip_host_key_verification")
         @get:ConfigDefault("false")
         val skipHostKeyVerification: Boolean
+
+        @get:Config("load_known_hosts")
+        @get:ConfigDefault("true")
+        val loadKnownHosts: Boolean
     }
 
     private val log = getLogger()

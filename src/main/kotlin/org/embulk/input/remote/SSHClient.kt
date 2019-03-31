@@ -23,7 +23,9 @@ class SSHClient private constructor(val client: SSHJ) : Closeable {
         if (authConfig.skipHostKeyVerification) {
             client.addHostKeyVerifier(PromiscuousVerifier())
         }
-        client.loadKnownHosts()
+        if (authConfig.loadKnownHosts) {
+            client.loadKnownHosts()
+        }
         client.connect(host, port)
 
         val type = authConfig.type
