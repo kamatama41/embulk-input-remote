@@ -27,6 +27,7 @@ This plugin load data from Remote hosts by SCP
     - **key_path**: Path of your secret key (required when you choose `public_key` type) (string, default: `~/.ssh/id_rsa` or `id_dsa`")
     - **password**: Password of the `user` (required when you choose `password` type) (string)
     - **skip_host_key_verification**: If true, verification of host key will be skipped (boolean, default: false)
+    - **load_known_hosts**: If true, load the known_hosts file (boolean, default: true)
 
 ## Example
 
