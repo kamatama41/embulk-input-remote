@@ -1,7 +1,6 @@
 package org.embulk.input.remote
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.google.common.base.Optional
 import org.embulk.config.Config
 import org.embulk.config.ConfigDefault
 import org.embulk.config.ConfigDiff
@@ -21,6 +20,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.util.Optional
 
 class RemoteFileInputPlugin : FileInputPlugin {
     interface PluginTask : Task {
@@ -85,6 +85,10 @@ class RemoteFileInputPlugin : FileInputPlugin {
         @get:Config("skip_host_key_verification")
         @get:ConfigDefault("false")
         val skipHostKeyVerification: Boolean
+
+        @get:Config("load_known_hosts")
+        @get:ConfigDefault("true")
+        val loadKnownHosts: Boolean
     }
 
     private val log = getLogger()
@@ -149,13 +153,13 @@ class RemoteFileInputPlugin : FileInputPlugin {
     }
 
     private fun listHosts(task: PluginTask): List<String> {
-        return task.hostsCommand.transform {
+        return task.hostsCommand.map {
             execCommand(it).split(task.hostsSeparator.toRegex())
-        }.or(task.hosts)
+        }.orElse(task.hosts)
     }
 
     private fun getPath(task: PluginTask): String {
-        return task.pathCommand.transform { execCommand(it) }.or(task.path)
+        return task.pathCommand.map { execCommand(it) }.orElse(task.path)
     }
 
     private fun execCommand(command: String?): String {

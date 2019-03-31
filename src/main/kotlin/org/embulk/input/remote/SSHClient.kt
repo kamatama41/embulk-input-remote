@@ -23,20 +23,22 @@ class SSHClient private constructor(val client: SSHJ) : Closeable {
         if (authConfig.skipHostKeyVerification) {
             client.addHostKeyVerifier(PromiscuousVerifier())
         }
-        client.loadKnownHosts()
+        if (authConfig.loadKnownHosts) {
+            client.loadKnownHosts()
+        }
         client.connect(host, port)
 
         val type = authConfig.type
-        val user = authConfig.user.or(System.getProperty("user.name"))
+        val user = authConfig.user.orElse(System.getProperty("user.name"))
 
         when (type) {
             "password" -> {
                 client.authPassword(user, authConfig.password.get())
             }
             "public_key" -> {
-                authConfig.keyPath.transform {
+                authConfig.keyPath.map {
                     client.authPublickey(user, it)
-                }.or {
+                }.orElseGet {
                     client.authPublickey(user)
                 }
             }
